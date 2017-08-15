@@ -22,7 +22,6 @@
 #include "InputLayout.h"
 #include <map>
 #include <thread>
-#include <mutex>
 
 using Microsoft::WRL::ComPtr;
 using Graphics::g_Device;
@@ -58,7 +57,7 @@ ComputePSO::ComputePSO()
 }
 
 GraphicsPSO::GraphicsPSO()
-{ 
+{
 	m_PSODesc = std::make_unique<GraphicsPipelineStateDesc>();
 }
 
@@ -94,32 +93,34 @@ GraphicsPSO::~GraphicsPSO()
 
 void ComputePSO::Destroy()
 {
-	if (m_ReadyFuture.valid())
-		m_ReadyFuture.wait();
+    while (m_LoadingState == kStateLoading)
+        std::this_thread::yield();
 	m_PSOState = nullptr;
 }
 
 void GraphicsPSO::Destroy()
 {
-	if (m_ReadyFuture.valid())
-		m_ReadyFuture.wait();
+    while (m_LoadingState == kStateLoading)
+        std::this_thread::yield();
 	m_PSOState = nullptr;
 }
 
 std::shared_ptr<ComputePipelineState> ComputePSO::GetState()
 {
-	ASSERT( m_ReadyFuture.valid(), L"Not Finalized Yet" );
-	m_ReadyFuture.wait();
+	ASSERT( m_LoadingState != kStateUnloaded, L"Not Finalized Yet" );
+    while (m_LoadingState == kStateLoading)
+        std::this_thread::yield();
 
-	return m_PSOState; 
+	return m_PSOState;
 }
 
-std::shared_ptr<GraphicsPipelineState> GraphicsPSO::GetState() 
+std::shared_ptr<GraphicsPipelineState> GraphicsPSO::GetState()
 {
-	ASSERT( m_ReadyFuture.valid(), L"Not Finalized Yet" );
-	m_ReadyFuture.wait();
+	ASSERT( m_LoadingState != kStateUnloaded, L"Not Finalized Yet" );
+    while (m_LoadingState == kStateLoading)
+        std::this_thread::yield();
 
-	return m_PSOState; 
+	return m_PSOState;
 }
 
 void GraphicsPSO::SetBlendState( const D3D11_BLEND_DESC& BlendDesc )
@@ -162,7 +163,7 @@ void GraphicsPSO::SetInputLayout( UINT NumElements, const InputDesc* pInputEleme
 		std::copy(pInputElementDescs, pInputElementDescs + NumElements, std::back_inserter(Desc));
 		m_PSODesc->InputDescList.swap(Desc);
 	}
-	else 
+	else
 	{
 		m_PSODesc->InputDescList.clear();
 	}
@@ -185,9 +186,9 @@ void ComputePSO::SetComputeShader( const std::string & Name, const void * Binary
 
 void GraphicsPSO::Finalize()
 {
-	ASSERT(!m_ReadyFuture.valid(), L"Already Finalized");
+	ASSERT(m_LoadingState != kStateLoaded, L"Already Finalized");
 
-	m_ReadyFuture = std::shared_future<void>(m_Promise.get_future());
+    m_LoadingState.store( kStateLoading );
 	auto sync = std::async(std::launch::async, [=]{
 		auto State = std::make_shared<GraphicsPipelineState>();
 		State->TopologyType = m_PSODesc->TopologyType;
@@ -202,24 +203,24 @@ void GraphicsPSO::Finalize()
 		State->HullShader = Shader::Create( kDomainShader, m_PSODesc->HS );
 
 		m_PSOState.swap(State);
-		m_Promise.set_value();
+        m_LoadingState.store( kStateLoaded );
 	});
 }
 
 void ComputePSO::Finalize()
 {
-	ASSERT(!m_ReadyFuture.valid(), L"Already Finalized");
+	ASSERT(m_LoadingState != kStateLoaded, L"Already Finalized");
 
-	m_ReadyFuture = std::shared_future<void>(m_Promise.get_future());
+    m_LoadingState.store( kStateLoading );
 	auto sync = std::async(std::launch::async, [=]{
 		auto State = std::make_shared<ComputePipelineState>();
 		State->ComputeShader = Shader::Create( kComputeShader, m_PSODesc->CS );
 		m_PSOState.swap(State);
-		m_Promise.set_value();
+        m_LoadingState.store( kStateLoaded );
 	});
 }
 
-void GraphicsPipelineState::Bind( ID3D11DeviceContext3 * Context )
+void GraphicsPipelineState::Bind( ID3D11DeviceContext* Context )
 {
 	if (TopologyType != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
 		Context->IASetPrimitiveTopology( TopologyType );
@@ -227,11 +228,11 @@ void GraphicsPipelineState::Bind( ID3D11DeviceContext3 * Context )
 	if (InputLayout)
 		InputLayout->Bind( Context );
 
-	if (VertexShader)
-		VertexShader->Bind( Context );
-
-	if (PixelShader)
-		PixelShader->Bind( Context );
+    VertexShader->Bind( Context );
+    PixelShader->Bind( Context );
+    GeometryShader->Bind( Context );
+    DomainShader->Bind( Context );
+    HullShader->Bind( Context );
 
 	if (BlendState)
 		BlendState->Bind( Context );
@@ -243,7 +244,7 @@ void GraphicsPipelineState::Bind( ID3D11DeviceContext3 * Context )
 		RasterizerState->Bind( Context );
 }
 
-void ComputePipelineState::Bind( ID3D11DeviceContext3 * Context )
+void ComputePipelineState::Bind( ID3D11DeviceContext * Context )
 {
 	if (ComputeShader)
 		ComputeShader->Bind( Context );

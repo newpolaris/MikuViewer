@@ -6,8 +6,10 @@
 #include "FileUtility.h"
 
 //
-// The image path is decoded with the system default and shift-jis
-// to support zip released with the wrong codepage
+// Resource path is decoded with both system-default and shift-jis
+// to support zip extracted with the wrong codepage.
+//
+// string TextureRaw, wstring Texture
 //
 namespace Pmd
 {
@@ -210,12 +212,14 @@ namespace Pmd
 	class PMD
 	{
 	public:
+        PMD() : m_IsValid(false) {}
+
 		// PMD model is defined in left handed coordinate
 		// 'bRightHand' flag convert model to right handed coordinate
 		void Fill( bufferstream & is, bool bRightHand );
 
 		bool IsValid( void ) const { return m_IsValid; }
-		bool m_IsValid = false;
+		bool m_IsValid;
 
 		Header m_Header;
 		vector<Vertex> m_Vertices;

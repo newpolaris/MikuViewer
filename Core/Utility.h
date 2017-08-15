@@ -8,54 +8,50 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #pragma once
 
-#include "pch.h"
+#include <string>
 
 namespace Utility
 {
 	inline void Print( const char* msg ) { printf("%s", msg); }
 	inline void Print( const wchar_t* msg ) { wprintf(L"%ws", msg); }
 
-	inline void Printf( const char* format, ... )
+    template <typename ... Args>
+	inline void Printf( const char* format, Args const & ... args ) noexcept
 	{
 		char buffer[256];
-		va_list ap;
-		va_start(ap, format);
-		vsprintf_s(buffer, 256, format, ap);
+		sprintf_s(buffer, 256, format, args ...);
 		Print(buffer);
 	}
 
-	inline void Printf( const wchar_t* format, ... )
+    template <typename ... Args>
+	inline void Printf( const wchar_t* format, Args const & ... args ) noexcept
 	{
 		wchar_t buffer[256];
-		va_list ap;
-		va_start(ap, format);
-		vswprintf(buffer, 256, format, ap);
+		swprintf(buffer, 256, format, args ...);
 		Print(buffer);
 	}
 
 #ifndef RELEASE
-	inline void PrintSubMessage( const char* format, ... )
+    template <typename ... Args>
+	inline void PrintSubMessage( const char* format, Args const & ... args ) noexcept
 	{
 		Print("--> ");
 		char buffer[256];
-		va_list ap;
-		va_start(ap, format);
-		vsprintf_s(buffer, 256, format, ap);
+		sprintf_s(buffer, 256, format, args ...);
 		Print(buffer);
 		Print("\n");
 	}
-	inline void PrintSubMessage( const wchar_t* format, ... )
+    template <typename ... Args>
+	inline void PrintSubMessage( const wchar_t* format, Args const & ... args ) noexcept
 	{
 		Print("--> ");
 		wchar_t buffer[256];
-		va_list ap;
-		va_start(ap, format);
-		vswprintf(buffer, 256, format, ap);
+		swprintf(buffer, 256, format, args ...);
 		Print(buffer);
 		Print("\n");
 	}
@@ -70,6 +66,20 @@ namespace Utility
 	{
 	}
 #endif
+
+    template<typename T>
+    static inline void DeleteObject( T *&object )
+    {
+        delete object;
+        object = nullptr;
+    }
+
+    template<typename T>
+    static inline void DeleteObjectArray( T *&object )
+    {
+        delete[] object;
+        object = nullptr;
+    }
 
 } // namespace Utility
 
@@ -145,31 +155,3 @@ namespace Utility
 
 void SIMDMemCopy( void* __restrict Dest, const void* __restrict Source, size_t NumQuadwords );
 void SIMDMemFill( void* __restrict Dest, __m128 FillVector, size_t NumQuadwords );
-
-inline void SetName( ID3D11DeviceChild* Resource, const std::string& Name )
-{
-#ifdef _DEBUG
-	ASSERT( Resource != nullptr );
-	Resource->SetPrivateData( WKPDID_D3DDebugObjectName, static_cast<UINT>(Name.size()), Name.c_str() );
-#else
-	(Resource);
-	(Name);
-#endif
-}
-
-inline void SetName( ID3D11DeviceChild* Resource, const std::wstring& Name )
-{
-#ifdef _DEBUG
-	ASSERT( Resource != nullptr );
-    UINT sizeInByte = static_cast<UINT>(Name.size() * sizeof(std::wstring::traits_type::char_type));
-	Resource->SetPrivateData( WKPDID_D3DDebugObjectNameW, sizeInByte, Name.c_str() );
-#else
-	(Resource);
-	(Name);
-#endif
-}
-
-inline void SetName( Microsoft::WRL::ComPtr<ID3D11DeviceChild> Resource, const std::wstring& Name )
-{
-    SetName( Resource.Get(), Name );
-}

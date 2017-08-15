@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #pragma once
@@ -18,6 +18,9 @@
 
 namespace Math
 {
+    extern const bool g_ReverseZ;
+    extern const float g_ClearDepth;
+
 	class BaseCamera
 	{
 	public:
@@ -40,9 +43,12 @@ namespace Math
 		const Vector3 GetUpVec() const { return m_Basis.GetY(); }
 		const Vector3 GetForwardVec() const { return -m_Basis.GetZ(); }
 		const Vector3 GetPosition() const { return m_CameraToWorld.GetTranslation(); }
+		float GetClearDepth() { return m_ReverseZ ? 0.0f : 1.0f; }
+		bool GetReverseZ() { return m_ReverseZ; }
 
 		// Accessors for reading the various matrices and frusta
 		const OrthogonalTransform& GetCameraToWorld() const { return m_CameraToWorld; }
+        const Matrix4& GetClipToWorld() const { return m_ClipToWorld; }
 		const Matrix4& GetViewMatrix() const { return m_ViewMatrix; }
 		const Matrix4& GetProjMatrix() const { return m_ProjMatrix; }
 		const Matrix4& GetViewProjMatrix() const { return m_ViewProjMatrix; }
@@ -52,11 +58,14 @@ namespace Math
 
 	protected:
 
-		BaseCamera() : m_CameraToWorld(kIdentity), m_Basis(kIdentity) {}
+        BaseCamera();
 
 		void SetProjMatrix( const Matrix4& ProjMat ) { m_ProjMatrix = ProjMat; }
 
 		OrthogonalTransform m_CameraToWorld;
+
+		// Redundant data cached for faster lookups. Invert(m_ViewProjMatrix)
+        Matrix4 m_ClipToWorld;
 
 		// Redundant data cached for faster lookups.
 		Matrix3 m_Basis;
@@ -67,7 +76,7 @@ namespace Math
 		Matrix4 m_ViewMatrix;		// i.e. "World-to-View" matrix
 
 		// The projection matrix transforms view space to clip space.  Once division by W has occurred, the final coordinates
-		// can be transformed by the viewport matrix to screen space.  The projection matrix is determined by the screen aspect 
+		// can be transformed by the viewport matrix to screen space.  The projection matrix is determined by the screen aspect
 		// and camera field of view.  A projection matrix can also be orthographic.  In that case, field of view would be defined
 		// in linear units, not angles.
 		Matrix4 m_ProjMatrix;		// i.e. "View-to-Projection" matrix
@@ -84,6 +93,7 @@ namespace Math
 		Frustum m_FrustumVS;		// View-space view frustum
 		Frustum m_FrustumWS;		// World-space view frustum
 
+		bool m_ReverseZ;		// Invert near and far clip distances so that Z=0 is the far plane
 	};
 
 	class Camera : public BaseCamera
@@ -96,14 +106,12 @@ namespace Math
 		void SetFOV( float verticalFovInRadians ) { m_VerticalFOV = verticalFovInRadians; UpdateProjMatrix(); }
 		void SetAspectRatio( float heightOverWidth ) { m_AspectRatio = heightOverWidth; UpdateProjMatrix(); }
 		void SetZRange( float nearZ, float farZ) { m_NearClip = nearZ; m_FarClip = farZ; UpdateProjMatrix(); }
-		void ReverseZ( bool enable ) { m_ReverseZ = enable; UpdateProjMatrix(); }
+        void ReverseZ( bool enable ) { m_ReverseZ = enable; UpdateProjMatrix(); }
 
 		float GetFOV() const { return m_VerticalFOV; }
 		float GetAspectRatio() const { return m_AspectRatio; }
 		float GetNearClip() const { return m_NearClip; }
 		float GetFarClip() const { return m_FarClip; }
-		float GetClearDepth() const { return m_ReverseZ ? 0.0f : 1.0f; }
-		bool GetReverseZ() const { return m_ReverseZ; }
 
 	private:
 
@@ -113,12 +121,16 @@ namespace Math
 		float m_AspectRatio;
 		float m_NearClip;
 		float m_FarClip;
-		bool m_ReverseZ;				// Invert near and far clip distances so that Z=0 is the far plane
 	};
+
+    inline Math::BaseCamera::BaseCamera() :
+        m_CameraToWorld( kIdentity ), m_Basis( kIdentity ), m_ReverseZ( g_ReverseZ )
+    {
+    }
 
 	inline void BaseCamera::SetEyeAtUp( Vector3 eye, Vector3 at, Vector3 up )
 	{
-		// This camera system use right-hand cordinate 
+		// This camera system use right-hand cordinate
 		// but, use left-hand look vector and called it as forward
 		SetLookDirection(at - eye, up);
 		SetPosition(eye);
@@ -149,7 +161,7 @@ namespace Math
 		m_Basis = Matrix3(m_CameraToWorld.GetRotation());
 	}
 
-	inline Camera::Camera() : m_ReverseZ( true )
+	inline Camera::Camera()
 	{
 		SetPerspectiveMatrix( XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f );
 	}

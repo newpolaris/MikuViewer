@@ -35,7 +35,7 @@ struct ComputePipelineStateDesc;
 struct ComputePipelineState
 {
 	std::shared_ptr<Shader> ComputeShader;
-	void Bind( ID3D11DeviceContext3* Context);
+	void Bind( ID3D11DeviceContext* Context);
 };
 
 struct GraphicsPipelineState
@@ -51,18 +51,22 @@ struct GraphicsPipelineState
 	std::shared_ptr<Shader> DomainShader;
 	std::shared_ptr<Shader> HullShader;
 
-	void Bind( ID3D11DeviceContext3* Context);
+	void Bind( ID3D11DeviceContext* Context);
 };
 
 class PSO
 {
 public:
+    enum ELoadingState : uint8_t {
+        kStateUnloaded,
+        kStateLoading,
+        kStateLoaded,
+    };
 
-	PSO() {}
+	PSO() : m_LoadingState(kStateUnloaded) {}
 	virtual ~PSO() {}
 
-	std::promise<void> m_Promise;
-	std::shared_future<void> m_ReadyFuture;
+    std::atomic<ELoadingState> m_LoadingState;
 };
 
 class GraphicsPSO : public PSO

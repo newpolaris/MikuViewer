@@ -345,7 +345,9 @@ public:
     {
         uint32_t FrameIndex = (uint32_t)Graphics::GetFrameCount();
 
-        GpuTimeManager::ResolveTimes();
+        if (!GpuTimeManager::ResolveTimes())
+            return;
+
         sm_RootScope.GatherTimes(FrameIndex);
         s_FrameDelta.RecordStat(FrameIndex, GpuTimeManager::GetTime(0));
 
@@ -507,12 +509,14 @@ namespace EngineProfiling
 
 void NestedTimingTree::PushProfilingMarker( const wstring& name, CommandContext* Context )
 {
+    ASSERT(sm_CurrentNode != nullptr);
     sm_CurrentNode = sm_CurrentNode->GetChild(name);
     sm_CurrentNode->StartTiming(Context);
 }
 
 void NestedTimingTree::PopProfilingMarker( CommandContext* Context )
 {
+    ASSERT(sm_CurrentNode != nullptr);
     sm_CurrentNode->StopTiming(Context);
     sm_CurrentNode = sm_CurrentNode->m_Parent;
 }

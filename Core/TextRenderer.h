@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #pragma once
@@ -95,9 +95,22 @@ public:
 	void DrawString( const std::string& str );
 
 	// A more powerful function which formats text like printf().  Very slow by comparison, so use it
-	// only if you're going to format text anyway.
-	void DrawFormattedString( const wchar_t* format, ... );
-	void DrawFormattedString( const char* format, ... );
+	// only if you're going to format text anyway. (Replace vprintf as varadic template, not tested yet)
+    template <typename ...Args>
+	void DrawFormattedString( const wchar_t* format, Args const & ... args ) noexcept
+    {
+        wchar_t buffer[256];
+        swprintf_s( buffer, 256, format, args ... );
+        DrawString( std::wstring( buffer ) );
+    }
+
+    template <typename ...Args>
+	void DrawFormattedString( const char* format, Args const & ... args ) noexcept
+    {
+        char buffer[256];
+        sprintf_s( buffer, 256, format, args ... );
+        DrawString( std::string( buffer ) );
+    }
 
 private:
 

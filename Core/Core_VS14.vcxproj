@@ -26,6 +26,7 @@
     <ClInclude Include="CommandListManager.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="dds.h" />
+    <ClInclude Include="DebugHelper.h" />
     <ClInclude Include="DepthBuffer.h" />
     <ClInclude Include="DepthOfField.h" />
     <ClInclude Include="DepthStencilState.h" />
@@ -47,11 +48,16 @@
     <ClInclude Include="GraphicsCore.h" />
     <ClInclude Include="Hash.h" />
     <ClInclude Include="InputLayout.h" />
+    <ClInclude Include="Math\BoundingBox.h" />
+    <ClInclude Include="Math\DualQuaternion.h" />
     <ClInclude Include="Math\Functions.h" />
     <ClInclude Include="MotionBlur.h" />
+    <ClInclude Include="OrthographicCamera.h" />
     <ClInclude Include="PostEffects.h" />
     <ClInclude Include="RasterizerState.h" />
     <ClInclude Include="SamplerManager.h" />
+    <ClInclude Include="ShadowBuffer.h" />
+    <ClInclude Include="ShadowCamera.h" />
     <ClInclude Include="SSAO.h" />
     <ClInclude Include="SystemTime.h" />
     <ClInclude Include="TemporalEffects.h" />
@@ -88,6 +94,7 @@
     <ClCompile Include="CommandContext.cpp" />
     <ClCompile Include="CommandListManager.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
+    <ClCompile Include="DebugHelper.cpp" />
     <ClCompile Include="DepthBuffer.cpp" />
     <ClCompile Include="DepthOfField.cpp" />
     <ClCompile Include="DepthStencilState.cpp" />
@@ -104,11 +111,14 @@
     <ClCompile Include="GraphRenderer.cpp" />
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="LinearAllocator.cpp" />
+    <ClCompile Include="Math\BoundingSphere.cpp" />
+    <ClCompile Include="Math\DualQuaternion.cpp" />
     <ClCompile Include="Math\Frustum.cpp" />
     <ClCompile Include="Math\Functions.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Random.cpp" />
     <ClCompile Include="MotionBlur.cpp" />
+    <ClCompile Include="OrthographicCamera.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Create</PrecompiledHeader>
@@ -123,6 +133,8 @@
     <ClCompile Include="RasterizerState.cpp" />
     <ClCompile Include="SamplerManager.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="ShadowBuffer.cpp" />
+    <ClCompile Include="ShadowCamera.cpp" />
     <ClCompile Include="SSAO.cpp" />
     <ClCompile Include="SystemTime.cpp" />
     <ClCompile Include="TemporalEffects.cpp" />
@@ -136,6 +148,11 @@
   <ItemGroup>
     <None Include="Math\Functions.inl" />
     <None Include="Shaders\ColorSpaceUtility.hlsli" />
+    <None Include="Shaders\FXAAPass1CS.hlsli" />
+    <None Include="Shaders\FXAAPass2CS.hlsli" />
+    <None Include="Shaders\FXAAPS.hlsli" />
+    <None Include="Shaders\FXAARootSignature.hlsli" />
+    <None Include="Shaders\MotionBlurRS.hlsli" />
     <None Include="Shaders\PixelPacking.hlsli" />
     <None Include="Shaders\PixelPacking_LUV.hlsli" />
     <None Include="Shaders\PixelPacking_R11G11B10.hlsli" />
@@ -143,6 +160,7 @@
     <None Include="Shaders\PixelPacking_RGBM.hlsli" />
     <None Include="Shaders\PixelPacking_Velocity.hlsli" />
     <None Include="Shaders\ShaderUtility.hlsli" />
+    <None Include="Shaders\TemporalRS.hlsli" />
     <None Include="Shaders\TextRS.hlsli" />
   </ItemGroup>
   <ItemGroup>
@@ -151,16 +169,28 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="Shaders\ApplyBloom3CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="Shaders\ApplyBloomCS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="Shaders\BoundNeighborhoodCS.hlsl" />
     <FxCompile Include="Shaders\BufferCopyPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="Shaders\CameraMotionBlurPrePassCS.hlsl" />
+    <FxCompile Include="Shaders\CameraMotionBlurPrePassLinearZCS.hlsl" />
+    <FxCompile Include="Shaders\CameraVelocityCS.hlsl" />
     <FxCompile Include="Shaders\ConvertLDRToDisplayPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
@@ -181,6 +211,45 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="Shaders\DebugTexturePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\FXAAPass1_Luma2_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass1_Luma_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass1_RGB2_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass1_RGB_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2H2CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2HCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2HDebugCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2V2CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2VCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2VDebugCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\FXAAResolveWorkQueueCS.hlsl" />
+    <FxCompile Include="Shaders\MotionBlurFinalPassCS.hlsl" />
+    <FxCompile Include="Shaders\MotionBlurFinalPassPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\MotionBlurPrePassCS.hlsl" />
+    <FxCompile Include="Shaders\PrimitivePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\PrimitiveVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\ResolveTAACS.hlsl" />
     <FxCompile Include="Shaders\ScreenQuadVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Vertex</ShaderType>
@@ -191,6 +260,8 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="Shaders\SharpenTAACS.hlsl" />
+    <FxCompile Include="Shaders\TemporalBlendCS.hlsl" />
     <FxCompile Include="Shaders\TextAntialiasPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -236,8 +307,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="Shared">
-  </ImportGroup>
+  <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheets\VS14.props" />
@@ -261,7 +331,7 @@
       <SDLCheck>false</SDLCheck>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\Core;..\3rdParty\boost_1_64_0\include;..\3rdParty\zlib-win64</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\3rdParty\zlib-win64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
@@ -269,7 +339,7 @@
       <SDLCheck>false</SDLCheck>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\Core;..\3rdParty\boost_1_64_0\include;..\3rdParty\zlib-win64</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\3rdParty\zlib-win64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -280,7 +350,7 @@
       <SDLCheck>false</SDLCheck>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\Core;..\3rdParty\boost_1_64_0\include;..\3rdParty\zlib-win64</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\3rdParty\zlib-win64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -288,4 +358,6 @@
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
 </Project>

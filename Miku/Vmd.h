@@ -1,7 +1,6 @@
 ﻿//
-// Vmd Parser MMDFormats
+// Vmd Parser MMDFormats 
 // https://github.com/oguna/MMDFormats
-// License: CC0 1.0 Universal
 //
 // VMD Memo
 // http://blog.goo.ne.jp/torisu_tetosuki/
@@ -106,7 +105,10 @@ namespace Vmd
 		std::vector<SelfShadowFrame> SelfShadowFrames;
 		std::vector<IkFrame> IKFrames;
 
+        VMD() : m_IsValid(false) {}
 		void Fill( bufferstream& is, bool bRH );
+        bool IsValid() const { return m_IsValid; }
+        bool m_IsValid;
 	};
 }
 

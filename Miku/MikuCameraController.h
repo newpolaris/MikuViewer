@@ -17,8 +17,7 @@ namespace GameCore
 {
 	using namespace Math;
 
-	enum CameraMode { kCameraMMD, kCamera3D, kCameraMotion };
-
+	enum ECameraMove { kCameraMoveMMD, kCameraMove3D, kCameraMoveMotion };
 	class MikuCameraController
 	{
 	public:
@@ -27,14 +26,11 @@ namespace GameCore
 		void Update( float dt );
 		void SlowRotation( bool enable ) { m_FineRotation = enable; }
 		void EnableMomentum( bool enable ) { m_Momentum = enable; }
-		void SetMotion( Graphics::Motion* motion ) { m_pMotion = motion; }
 
 	private:
 		void ApplyMomentum( float& oldValue, float& newValue, float deltaTime );
-		void UpdateFromInput( CameraMode kCameraMode, float deltaTime );
+		void UpdateFromInput( ECameraMove kCameraMode, float deltaTime );
 
-		CameraMode m_kCameraMode;
-		Graphics::Motion* m_pMotion;
 		Vector3 m_WorldUp;
 		Vector3 m_WorldNorth;
 		Vector3 m_WorldEast;

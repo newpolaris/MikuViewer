@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #include "pch.h"
@@ -16,6 +16,15 @@
 #include <cmath>
 
 using namespace Math;
+
+#define ReverseZ_
+#ifdef ReverseZD_
+const bool Math::g_bReverseZ = true;
+const float Math::g_ClearDepth = 0.0f;
+#else
+const bool Math::g_ReverseZ = false;
+const float Math::g_ClearDepth = 1.0f;
+#endif
 
 //
 // 'forward' is inverse look direction (right hand coord)
@@ -48,39 +57,14 @@ void BaseCamera::Update()
 
 	m_ViewMatrix = Matrix4(~m_CameraToWorld);
 	m_ViewProjMatrix = m_ProjMatrix * m_ViewMatrix;
-	m_ReprojectMatrix = m_PreviousViewProjMatrix * Invert(GetViewProjMatrix());
+    m_ClipToWorld = Invert(m_ViewProjMatrix);
+	m_ReprojectMatrix = m_PreviousViewProjMatrix * m_ClipToWorld;
 
 	m_FrustumVS = Frustum( m_ProjMatrix );
 	m_FrustumWS = m_CameraToWorld * m_FrustumVS;
 }
 
-
 void Camera::UpdateProjMatrix( void )
 {
-	float Y = 1.0f / std::tanf( m_VerticalFOV * 0.5f );
-	float X = Y * m_AspectRatio;
-
-	float Q1, Q2;
-
-	// ReverseZ puts far plane at Z=0 and near plane at Z=1.  This is never a bad idea, and it's
-	// actually a great idea with F32 depth buffers to redistribute precision more evenly across
-	// the entire range.  It requires clearing Z to 0.0f and using a GREATER variant depth test.
-	// Some care must also be done to properly reconstruct linear W in a pixel shader from hyperbolic Z.
-	if (m_ReverseZ)
-	{
-		Q1 = m_NearClip / (m_FarClip - m_NearClip);
-		Q2 = Q1 * m_FarClip;
-	}
-	else
-	{
-		Q1 = m_FarClip / (m_NearClip - m_FarClip);
-		Q2 = Q1 * m_NearClip;
-	}
-
-	SetProjMatrix( Matrix4(
-		Vector4( X, 0.0f, 0.0f, 0.0f ),
-		Vector4( 0.0f, Y, 0.0f, 0.0f ),
-		Vector4( 0.0f, 0.0f, Q1, -1.0f ),
-		Vector4( 0.0f, 0.0f, Q2, 0.0f )
-		) );
+    SetProjMatrix(PerspectiveMatrix( m_VerticalFOV, m_AspectRatio, m_NearClip, m_FarClip, m_ReverseZ ));
 }

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "Mapping.h"
+
 class CommandContext;
 class CommandListManager;
 class CommandSignature;
@@ -19,8 +21,6 @@ class ContextManager;
 class ColorBuffer;
 class DepthBuffer;
 class SamplerDesc;
-
-using D3D11_SAMPLER_HANDLE = ID3D11SamplerState*;
 
 namespace Graphics
 {
@@ -41,11 +41,11 @@ namespace Graphics
 	float GetFrameRate(void);
 
 	extern ColorBuffer g_DisplayPlane;
-	extern ID3D11Device3* g_Device;
+	extern ID3D11_DEVICE* g_Device;
 	extern CommandListManager g_CommandManager;
 	extern ContextManager g_ContextManager;
 
-	extern ID3D11DeviceContext3* g_Context;
+	extern ID3D11_CONTEXT* g_Context;
 	extern IDXGISwapChain1* s_SwapChain1;
 	extern ID3D11RenderTargetView* g_RenderTargetView;
 
@@ -55,7 +55,8 @@ namespace Graphics
 
 	extern SamplerDesc SamplerLinearWrapDesc;
 	extern SamplerDesc SamplerAnisoWrapDesc;
-	extern SamplerDesc SamplerShadowDesc;
+	extern SamplerDesc SamplerShadowDescGE;
+    extern SamplerDesc SamplerShadowDescLE;
 	extern SamplerDesc SamplerLinearClampDesc;
 	extern SamplerDesc SamplerVolumeWrapDesc;
 	extern SamplerDesc SamplerPointClampDesc;
@@ -64,6 +65,8 @@ namespace Graphics
 
 	extern D3D11_SAMPLER_HANDLE SamplerLinearWrap;
 	extern D3D11_SAMPLER_HANDLE SamplerAnisoWrap;
+	extern D3D11_SAMPLER_HANDLE SamplerShadowGE;
+	extern D3D11_SAMPLER_HANDLE SamplerShadowLE;
 	extern D3D11_SAMPLER_HANDLE SamplerShadow;
 	extern D3D11_SAMPLER_HANDLE SamplerLinearClamp;
 	extern D3D11_SAMPLER_HANDLE SamplerVolumeWrap;
@@ -74,6 +77,7 @@ namespace Graphics
 	extern D3D11_RASTERIZER_DESC RasterizerDefault;
 	extern D3D11_RASTERIZER_DESC RasterizerDefaultCW;
 	extern D3D11_RASTERIZER_DESC RasterizerTwoSided;
+    extern D3D11_RASTERIZER_DESC RasterizerWireframe;
 	extern D3D11_RASTERIZER_DESC RasterizerShadow;
 	extern D3D11_RASTERIZER_DESC RasterizerShadowCW;
 	extern D3D11_RASTERIZER_DESC RasterizerShadowTwoSided;
@@ -87,7 +91,6 @@ namespace Graphics
 
 	extern D3D11_DEPTH_STENCIL_DESC DepthStateDisabled;
 	extern D3D11_DEPTH_STENCIL_DESC DepthStateReadWrite;
-	extern D3D11_DEPTH_STENCIL_DESC DepthStateReadWriteLE;
 	extern D3D11_DEPTH_STENCIL_DESC DepthStateReadOnly;
 	extern D3D11_DEPTH_STENCIL_DESC DepthStateReadOnlyReversed;
 	extern D3D11_DEPTH_STENCIL_DESC DepthStateTestEqual;

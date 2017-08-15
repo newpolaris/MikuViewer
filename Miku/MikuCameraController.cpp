@@ -5,28 +5,33 @@
 
 using namespace GameCore;
 
-Matrix3 GetBasis( Vector3 forward, Vector3 up )
+namespace GameCore
 {
-	// Given, but ensure normalization
-	Scalar forwardLenSq = LengthSquare(forward);
-	forward = Select(forward * RecipSqrt(forwardLenSq), -Vector3(kZUnitVector), forwardLenSq < Scalar(0.000001f));
+    const char* CameraLabels[] = { "Camera MMD", "Camera 3D", "Camera Motion" };
+    EnumVar CameraMove("Application/Camera/Main Camera Move", kCameraMove3D, 3, CameraLabels);
 
-	// Deduce a valid, orthogonal right vector
+    Matrix3 GetBasis( Vector3 forward, Vector3 up )
+    {
+        // Given, but ensure normalization
+        Scalar forwardLenSq = LengthSquare(forward);
+        forward = Select(forward * RecipSqrt(forwardLenSq), -Vector3(kZUnitVector), forwardLenSq < Scalar(0.000001f));
 
-	Vector3 right = Cross(forward, up); // forward = -look
-	Scalar rightLenSq = LengthSquare(right);
-	right = Select(right * RecipSqrt(rightLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * forward, rightLenSq < Scalar(0.000001f));
+        // Deduce a valid, orthogonal right vector
 
-	// Compute actual up vector
-	up = Cross(right, forward); // forward = -look
+        Vector3 right = Cross(forward, up); // forward = -look
+        Scalar rightLenSq = LengthSquare(right);
+        right = Select(right * RecipSqrt(rightLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * forward, rightLenSq < Scalar(0.000001f));
 
-	// Finish constructing basis
-	return Matrix3(right, up, -forward); // -forward = look
+        // Compute actual up vector
+        up = Cross(right, forward); // forward = -look
+
+        // Finish constructing basis
+        return Matrix3(right, up, -forward); // -forward = look
+    }
 }
 
-
 MikuCameraController::MikuCameraController( MikuCamera& camera, Vector3 worldUp ) :
-	m_TargetCamera( camera ), m_kCameraMode( kCamera3D ), m_pMotion( nullptr )
+    m_TargetCamera( camera )
 {
 	m_WorldUp = Normalize(worldUp);
 	m_WorldNorth = Normalize(Cross(m_WorldUp, Vector3(kXUnitVector)));
@@ -63,20 +68,15 @@ namespace Graphics
 
 void MikuCameraController::Update( float deltaTime )
 {
-	if (m_kCameraMode == kCameraMotion)
-	{
-		if (m_pMotion)
-			m_pMotion->Animate( m_TargetCamera );
-	}
-	else
-	{
-		UpdateFromInput( m_kCameraMode, deltaTime );
-	}
+    auto mode = ECameraMove((int)CameraMove);
+	if (mode != kCameraMoveMotion)
+        UpdateFromInput( mode, deltaTime );
+
 	m_TargetCamera.UpdateViewMatrix();
 	m_TargetCamera.Update();
 }
 
-void MikuCameraController::UpdateFromInput( CameraMode kCameraMode, float deltaTime )
+void MikuCameraController::UpdateFromInput( ECameraMove kCameraMove, float deltaTime )
 {
 	(deltaTime);
 
@@ -119,8 +119,8 @@ void MikuCameraController::UpdateFromInput( CameraMode kCameraMode, float deltaT
 		ApplyMomentum(m_LastAscent, ascent, deltaTime);
 	}
 
-	if (kCameraMode == kCamera3D ||
-		kCameraMode == kCameraMMD && GameInput::IsPressed( GameInput::kMouse0 ))
+	if (kCameraMove == kCameraMove3D ||
+		kCameraMove == kCameraMoveMMD && GameInput::IsPressed( GameInput::kMouse0 ))
 	{
 		// don't apply momentum to mouse inputs
 		yaw += GameInput::GetAnalogInput(GameInput::kAnalogMouseX) * m_MouseSensitivityX;
@@ -139,13 +139,13 @@ void MikuCameraController::UpdateFromInput( CameraMode kCameraMode, float deltaT
 	else if (m_CurrentHeading <= -XM_PI)
 		m_CurrentHeading += XM_2PI; 
 
-	if (kCameraMode == kCameraMMD)
+	if (kCameraMove == kCameraMoveMMD)
 	{
 		Matrix3 orientation = Matrix3(m_WorldEast, m_WorldUp, -m_WorldNorth) * Matrix3::MakeYRotation( m_CurrentHeading ) * Matrix3::MakeXRotation( m_CurrentPitch );
 		m_TargetCamera.SetDistance(m_TargetCamera.GetDistance() + distanceDelta);
 		m_TargetCamera.SetRotationUI( Quaternion(orientation) );
 	}
-	else if (kCameraMode == kCamera3D)
+	else if (kCameraMove == kCameraMove3D)
 	{
 		Matrix3 orientation = Matrix3( m_WorldEast, m_WorldUp, -m_WorldNorth ) * Matrix3::MakeYRotation( m_CurrentHeading ) * Matrix3::MakeXRotation( m_CurrentPitch );
 		Vector3 position = orientation * Vector3( strafe, ascent, -forward ) + m_TargetCamera.GetPosition();

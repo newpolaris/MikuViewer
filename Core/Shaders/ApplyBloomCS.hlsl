@@ -5,11 +5,14 @@
 Texture2D<float3> Bloom : register(t0);
 #if SUPPORT_TYPED_UAV_LOADS
 RWTexture2D<float3> SrcColor : register(u0);
+#elif USE_FXAA_PS
+RWTexture2D<float3> DstColor : register(u0);
+Texture2D<float3> SrcColor : register(t2);
 #else
 RWTexture2D<uint> DstColor : register(u0);
 Texture2D<float3> SrcColor : register(t2);
 #endif
-RWTexture2D<float> OutLuma : register(u1);
+RWTexture2D<unorm float> OutLuma : register(u1);
 SamplerState LinearSampler : register(s0);
 
 cbuffer Constants : register(b0)
@@ -30,8 +33,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
 
 #if SUPPORT_TYPED_UAV_LOADS
     SrcColor[DTid.xy] = ldrColor;
+#elif USE_FXAA_PS
+    DstColor[DTid.xy] = ldrColor;
 #else
     DstColor[DTid.xy] = Pack_R11G11B10_FLOAT(ldrColor);
 #endif
-    OutLuma[DTid.xy] = RGBToLogLuminance(ldrColor);
+    OutLuma[DTid.xy] = RGBToLuminance(ldrColor);
 }

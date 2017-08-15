@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #include "pch.h"
@@ -20,6 +20,8 @@
 #include "GraphicsCore.h"
 #include "GameCore.h"
 #include "BufferManager.h"
+#include "PostEffects.h"
+#include "SSAO.h"
 #include "ColorBuffer.h"
 #include "DepthBuffer.h"
 #include "CommandContext.h"
@@ -30,7 +32,25 @@
 #include "SystemTime.h"
 #include "TemporalEffects.h"
 #include "SSAO.h"
-#include "PostEffects.h"
+#include "DebugHelper.h"
+
+// This macro determines whether to detect if there is an HDR display and enable HDR10 output.
+// Currently, with HDR display enabled, the pixel magnfication functionality is broken.
+#define CONDITIONALLY_ENABLE_HDR_OUTPUT 1
+
+// Uncomment this to enable experimental support for the new shader compiler, DXC.exe
+//#define DXIL
+
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    #include <agile.h>
+#endif
+
+#if defined(NTDDI_WIN10_RS2) && (NTDDI_VERSION >= NTDDI_WIN10_RS2)
+    #include <dxgi1_6.h>
+#else
+    #include <dxgi1_4.h>	// For WARP
+#endif
+#include <winreg.h>		// To read the registry
 
 #include "CompiledShaders/ScreenQuadVS.h"
 #include "CompiledShaders/BufferCopyPS.h"
@@ -71,65 +91,69 @@ namespace
 
 namespace Graphics
 {
-	using Microsoft::WRL::ComPtr;
-
-	void PreparePresentLDR();
-	void PreparePresentHDR();
+    void PreparePresentLDR();
+    void PreparePresentHDR();
+    void CompositeOverlays( GraphicsContext& Context );
 
 #ifndef RELEASE
-	const GUID WKPDID_D3DDebugObjectName = { 0x429b8c22,0x9188,0x4b0c, { 0x87,0x42,0xac,0xb0,0xbf,0x85,0xc2,0x00 }};
+    const GUID WKPDID_D3DDebugObjectName = { 0x429b8c22,0x9188,0x4b0c, { 0x87,0x42,0xac,0xb0,0xbf,0x85,0xc2,0x00 }};
 #endif
 
-	enum eResolution { k720p, k900p, k1080p, k1440p, k2160p };
+    enum eResolution { k720p, k900p, k1080p, k1440p, k1800p, k2160p };
 
-	const uint32_t kMaxNativeWidth = 3840;
-	const uint32_t kMaxNativeHeight = 2160;
-	const uint32_t kNumPredefinedResolutions = 5;
+    const uint32_t kMaxNativeWidth = 3840;
+    const uint32_t kMaxNativeHeight = 2160;
+    const uint32_t kNumPredefinedResolutions = 6;
 
-	const char* ResolutionLabels[] = { "1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160" };
-	EnumVar TargetResolution("Graphics/Display/Native Resolution", k1080p, kNumPredefinedResolutions, ResolutionLabels);
+    const char* ResolutionLabels[] = { "1280x720", "1600x900", "1920x1080", "2560x1440", "3200x1800", "3840x2160" };
+    EnumVar TargetResolution("Graphics/Display/Native Resolution", k1080p, kNumPredefinedResolutions, ResolutionLabels);
 
-	bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT = false;
-	bool g_bEnableHDROutput = false;
-	NumVar g_HDRPaperWhite("Graphics/Display/Paper White (nits)", 400.0f, 80.0f, 520.0f, 40.0f);
-	NumVar g_MaxDisplayLuminance("Graphics/Display/Peak Brightness (nits)", 1000.0f, 400.0f, 2000.0f, 50.0f);
-	const char* HDRModeLabels[] = { "HDR", "LDR", "Side-by-Side" };
-	EnumVar HDRDebugMode("Graphics/Display/HDR Debug Mode", 0, 3, HDRModeLabels);
+    bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT = false;
+    bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT = false;
+    bool g_bEnableHDROutput = false;
+    NumVar g_HDRPaperWhite("Graphics/Display/Paper White (nits)", 200.0f, 100.0f, 500.0f, 50.0f);
+    NumVar g_MaxDisplayLuminance("Graphics/Display/Peak Brightness (nits)", 1000.0f, 500.0f, 10000.0f, 100.0f);
+    const char* HDRModeLabels[] = { "HDR", "SDR", "Side-by-Side" };
+    EnumVar HDRDebugMode("Graphics/Display/HDR Debug Mode", 0, 3, HDRModeLabels);
 
-	uint32_t g_NativeWidth = 0;
-	uint32_t g_NativeHeight = 0;
-	uint32_t g_DisplayWidth = 1920;
-	uint32_t g_DisplayHeight = 1080;
-	ColorBuffer g_PreDisplayBuffer;
+    uint32_t g_NativeWidth = 0;
+    uint32_t g_NativeHeight = 0;
+    uint32_t g_DisplayWidth = 1920;
+    uint32_t g_DisplayHeight = 1080;
+    ColorBuffer g_PreDisplayBuffer;
 
-	void SetNativeResolution(void)
-	{
-		uint32_t NativeWidth, NativeHeight;
+    void SetNativeResolution(void)
+    {
+        uint32_t NativeWidth, NativeHeight;
 
-		switch (eResolution((int)TargetResolution))
-		{
-		default:
-		case k720p:
-			NativeWidth = 1280;
-			NativeHeight = 720;
-			break;
-		case k900p:
-			NativeWidth = 1600;
-			NativeHeight = 900;
-			break;
-		case k1080p:
-			NativeWidth = 1920;
-			NativeHeight = 1080;
-			break;
-		case k1440p:
-			NativeWidth = 2560;
-			NativeHeight = 1440;
-			break;
-		case k2160p:
-			NativeWidth = 3840;
-			NativeHeight = 2160;
-			break;
-		}
+        switch (eResolution((int)TargetResolution))
+        {
+        default:
+        case k720p:
+            NativeWidth = 1280;
+            NativeHeight = 720;
+            break;
+        case k900p:
+            NativeWidth = 1600;
+            NativeHeight = 900;
+            break;
+        case k1080p:
+            NativeWidth = 1920;
+            NativeHeight = 1080;
+            break;
+        case k1440p:
+            NativeWidth = 2560;
+            NativeHeight = 1440;
+            break;
+        case k1800p:
+            NativeWidth = 3200;
+            NativeHeight = 1800;
+            break;
+        case k2160p:
+            NativeWidth = 3840;
+            NativeHeight = 2160;
+            break;
+        }
 
 		if (g_NativeWidth == NativeWidth && g_NativeHeight == NativeHeight)
 			return;
@@ -144,7 +168,7 @@ namespace Graphics
 		InitializeRenderingBuffers( NativeWidth, NativeHeight );
 	}
 
-	ID3D11Device3* g_Device = nullptr;
+	ID3D11_DEVICE* g_Device = nullptr;
 
 	CommandListManager g_CommandManager;
 	ContextManager g_ContextManager;
@@ -154,11 +178,12 @@ namespace Graphics
 	ColorBuffer g_DisplayPlane;
 
 	IDXGISwapChain1* s_SwapChain1 = nullptr;
-	ID3D11DeviceContext3* g_Context = nullptr;
+	ID3D11_CONTEXT* g_Context = nullptr;
 
 	SamplerDesc SamplerLinearWrapDesc;
 	SamplerDesc SamplerAnisoWrapDesc;
-	SamplerDesc SamplerShadowDesc;
+	SamplerDesc SamplerShadowDescGE;
+	SamplerDesc SamplerShadowDescLE;
 	SamplerDesc SamplerLinearClampDesc;
 	SamplerDesc SamplerVolumeWrapDesc;
 	SamplerDesc SamplerPointClampDesc;
@@ -167,6 +192,8 @@ namespace Graphics
 
 	D3D11_SAMPLER_HANDLE SamplerLinearWrap;
 	D3D11_SAMPLER_HANDLE SamplerAnisoWrap;
+	D3D11_SAMPLER_HANDLE SamplerShadowGE;
+	D3D11_SAMPLER_HANDLE SamplerShadowLE;
 	D3D11_SAMPLER_HANDLE SamplerShadow;
 	D3D11_SAMPLER_HANDLE SamplerLinearClamp;
 	D3D11_SAMPLER_HANDLE SamplerVolumeWrap;
@@ -177,6 +204,7 @@ namespace Graphics
 	D3D11_RASTERIZER_DESC RasterizerDefault;
 	D3D11_RASTERIZER_DESC RasterizerDefaultCW;
 	D3D11_RASTERIZER_DESC RasterizerTwoSided;
+	D3D11_RASTERIZER_DESC RasterizerWireframe;
 	D3D11_RASTERIZER_DESC RasterizerShadow;
 	D3D11_RASTERIZER_DESC RasterizerShadowCW;
 	D3D11_RASTERIZER_DESC RasterizerShadowTwoSided;
@@ -190,12 +218,13 @@ namespace Graphics
 
 	D3D11_DEPTH_STENCIL_DESC DepthStateDisabled;
 	D3D11_DEPTH_STENCIL_DESC DepthStateReadWrite;
-	D3D11_DEPTH_STENCIL_DESC DepthStateReadWriteLE;
 	D3D11_DEPTH_STENCIL_DESC DepthStateReadOnly;
 	D3D11_DEPTH_STENCIL_DESC DepthStateReadOnlyReversed;
 	D3D11_DEPTH_STENCIL_DESC DepthStateTestEqual;
 
-	GraphicsPSO s_BlendUIPSO;
+    GraphicsPSO s_BlendUIPSO;
+    GraphicsPSO PresentSDRPS;
+    GraphicsPSO PresentHDRPS;
 	GraphicsPSO ConvertLDRToDisplayPS;
 	GraphicsPSO ConvertHDRToDisplayPS;
 	GraphicsPSO MagnifyPixelsPS;
@@ -212,31 +241,26 @@ namespace Graphics
 	EnumVar UpsampleFilter("Graphics/Display/Upsample Filter", kFilterCount - 1, kFilterCount, FilterLabels);
 	NumVar BicubicUpsampleWeight("Graphics/Display/Bicubic Filter Weight", -0.75f, -1.0f, -0.25f, 0.25f);
 	NumVar SharpeningSpread("Graphics/Display/Sharpness Sample Spread", 1.0f, 0.7f, 2.0f, 0.1f);
-	NumVar SharpeningRotation("Graphics/Display/Sharpness Sample Rotation", 45.0f, 0.0f, 90.0f, 15.0f);
-	NumVar SharpeningStrength("Graphics/Display/Sharpness Strength", 0.10f, 0.0f, 1.0f, 0.01f);
+    NumVar SharpeningRotation("Graphics/Display/Sharpness Sample Rotation", 45.0f, 0.0f, 90.0f, 15.0f);
+    NumVar SharpeningStrength("Graphics/Display/Sharpness Strength", 0.10f, 0.0f, 1.0f, 0.01f);
 
-	enum DebugZoomLevel { kDebugZoomOff, kDebugZoom2x, kDebugZoom4x };
-	const char* DebugZoomLabels[] = { "Off", "2x Zoom", "4x Zoom" };
-	EnumVar DebugZoom("Graphics/Display/Magnify Pixels", kDebugZoomOff, 3, DebugZoomLabels);
+    enum DebugZoomLevel { kDebugZoomOff, kDebugZoom2x, kDebugZoom4x, kDebugZoom8x, kDebugZoom16x, kDebugZoomCount };
+    const char* DebugZoomLabels[] = { "Off", "2x Zoom", "4x Zoom", "8x Zoom", "16x Zoom" };
+    EnumVar DebugZoom("Graphics/Display/Magnify Pixels", kDebugZoomOff, kDebugZoomCount, DebugZoomLabels);
 }
 
-void Graphics::Resize( uint32_t width, uint32_t height )
+void Graphics::Resize(uint32_t width, uint32_t height)
 {
-	ASSERT(s_SwapChain1 != nullptr);
+    ASSERT(s_SwapChain1 != nullptr);
 
-	g_CommandManager.IdleGPU();
-	
-#if 0
-	g_Context->ClearState();
-	g_Context->Flush1();
-#endif
+    g_CommandManager.IdleGPU();
 
-	g_DisplayWidth = width;
-	g_DisplayHeight = height;
+    g_DisplayWidth = width;
+    g_DisplayHeight = height;
 
-	DEBUGPRINT("Changing display resolution to %ux%u", width, height);
+    DEBUGPRINT("Changing display resolution to %ux%u", width, height);
 
-	g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+    g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
 
 	g_DisplayPlane.Destroy();
 
@@ -245,6 +269,9 @@ void Graphics::Resize( uint32_t width, uint32_t height )
 	ComPtr<ID3D11Texture2D> BackBuffer;
 	ASSERT_SUCCEEDED(s_SwapChain1->GetBuffer(0, MY_IID_PPV_ARGS(&BackBuffer)));
 	g_DisplayPlane.CreateFromSwapChain(L"Primary SwapChain Buffer", BackBuffer);
+
+    g_CommandManager.IdleGPU();
+    ResizeDisplayDependentBuffers(g_NativeWidth, g_NativeHeight);
 }
 
 // Initialize the DirectX resources required to run.
@@ -261,11 +288,11 @@ void Graphics::Initialize( void )
 #endif
 
 	// Obtain the DXGI factory
-	ComPtr<IDXGIFactory4> dxgiFactory;
+	Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory;
 	ASSERT_SUCCEEDED(CreateDXGIFactory2(0, MY_IID_PPV_ARGS(&dxgiFactory)));
 
 	// Create the D3D graphics device
-	ComPtr<IDXGIAdapter1> pAdapter;
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> pAdapter;
 
 	static const bool bUseWarpDriver = false;
 
@@ -276,7 +303,7 @@ void Graphics::Initialize( void )
 	deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-	D3D_FEATURE_LEVEL featureLevels[] = 
+	D3D_FEATURE_LEVEL featureLevels[] =
 	{
 		D3D_FEATURE_LEVEL_12_1,
 		D3D_FEATURE_LEVEL_12_0,
@@ -293,10 +320,10 @@ void Graphics::Initialize( void )
 			if (desc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
 				continue;
 
-			if (desc1.DedicatedVideoMemory > MaxSize && 
+			if (desc1.DedicatedVideoMemory > MaxSize &&
 				SUCCEEDED(D3D11CreateDevice(
-					pAdapter.Get(), 
-					D3D_DRIVER_TYPE_UNKNOWN, 
+					pAdapter.Get(),
+					D3D_DRIVER_TYPE_UNKNOWN,
 					nullptr,
 					deviceFlags,
 					featureLevels,
@@ -313,13 +340,13 @@ void Graphics::Initialize( void )
 		}
 
 		if (MaxSize > 0) {
-			ComPtr<ID3D11Device3> pDevice3;
-			SUCCEEDED(pDevice.As(&pDevice3));
-			g_Device = pDevice3.Detach();
+			ComPtr<ID3D11_DEVICE> device;
+			SUCCEEDED(pDevice.As(&device));
+			g_Device = device.Detach();
 
-			ComPtr<ID3D11DeviceContext3> pContext3;
-			SUCCEEDED( pContext.As( &pContext3 ) );
-			g_Context = pContext3.Detach();
+			ComPtr<ID3D11_CONTEXT> context;
+			SUCCEEDED( pContext.As( &context ) );
+			g_Context = context.Detach();
 		}
 	}
 
@@ -343,15 +370,39 @@ void Graphics::Initialize( void )
 			&g_D3DFeatureLevel,
 			pContext.ReleaseAndGetAddressOf() ) );
 
-		ComPtr<ID3D11Device3> pDevice3;
-		SUCCEEDED( pDevice.As( &pDevice3 ) );
-		g_Device = pDevice3.Detach();
+		ComPtr<ID3D11_DEVICE> device;
+		SUCCEEDED( pDevice.As( &device ) );
+		g_Device = device.Detach();
 
-		ComPtr<ID3D11DeviceContext3> pContext3;
-		SUCCEEDED( pContext.As( &pContext3 ) );
-		g_Context = pContext3.Detach();
+		ComPtr<ID3D11_CONTEXT> context;
+		SUCCEEDED( pContext.As( &context ) );
+		g_Context = context.Detach();
 	}
 
+#ifndef RELEASE
+    else
+    {
+        bool DeveloperModeEnabled = false;
+
+        // Look in the Windows Registry to determine if Developer Mode is enabled
+        HKEY hKey;
+        LSTATUS result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock", 0, KEY_READ, &hKey);
+        if (result == ERROR_SUCCESS)
+        {
+            DWORD keyValue, keySize = sizeof(DWORD);
+            result = RegQueryValueEx(hKey, L"AllowDevelopmentWithoutDevLicense", 0, NULL, (byte*)&keyValue, &keySize);
+            if (result == ERROR_SUCCESS && keyValue == 1)
+                DeveloperModeEnabled = true;
+            RegCloseKey(hKey);
+        }
+
+        WARN_ONCE_IF_NOT(DeveloperModeEnabled, "Enable Developer Mode on Windows 10 to get consistent profiling results");
+
+        // Prevent the GPU from overclocking or underclocking to get consistent timings
+        // if (DeveloperModeEnabled)
+        //    g_Device->SetStablePowerState(TRUE);
+    }
+#endif
 #if _DEBUG
 	ID3D11InfoQueue* pInfoQueue = nullptr;
 	if (SUCCEEDED(g_Device->QueryInterface(MY_IID_PPV_ARGS(&pInfoQueue))))
@@ -360,12 +411,12 @@ void Graphics::Initialize( void )
 		// D3D11_MESSAGE_CATEGORY Categories[] = {};
 
 		// Suppress messages based on their severity level
-		D3D11_MESSAGE_SEVERITY Severities[] = 
+		D3D11_MESSAGE_SEVERITY Severities[] =
 		{
 			D3D11_MESSAGE_SEVERITY_INFO
 		};
 
-		D3D11_MESSAGE_ID Id[] = 
+		D3D11_MESSAGE_ID Id[] =
 		{
 			D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
 		};
@@ -404,24 +455,46 @@ void Graphics::Initialize( void )
 		}
 	}
 
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.Width = g_DisplayWidth;
-	swapChainDesc.Height = g_DisplayHeight;
-	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	swapChainDesc.Stereo = FALSE;
-	swapChainDesc.Scaling = DXGI_SCALING_NONE;
-	swapChainDesc.SampleDesc.Count = 1;
-	swapChainDesc.SampleDesc.Quality = 0;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = SWAP_CHAIN_BUFFER_COUNT;
-	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+    swapChainDesc.Width = g_DisplayWidth;
+    swapChainDesc.Height = g_DisplayHeight;
+    swapChainDesc.Format = SwapChainFormat;
+    swapChainDesc.Scaling = DXGI_SCALING_NONE;
+    swapChainDesc.SampleDesc.Quality = 0;
+    swapChainDesc.SampleDesc.Count = 1;
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesc.BufferCount = SWAP_CHAIN_BUFFER_COUNT;
+    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 	ASSERT_SUCCEEDED(dxgiFactory->CreateSwapChainForHwnd(g_Device, GameCore::g_hWnd, &swapChainDesc, nullptr, nullptr, &s_SwapChain1));
 #else
 	ASSERT_SUCCEEDED(dxgiFactory->CreateSwapChainForCoreWindow(g_CommandManager.GetCommandQueue(), (IUnknown*)GameCore::g_window.Get(), &swapChainDesc, nullptr, &s_SwapChain1));
 #endif
+
+#if CONDITIONALLY_ENABLE_HDR_OUTPUT && defined(NTDDI_WIN10_RS2) && (NTDDI_VERSION >= NTDDI_WIN10_RS2)
+    {
+        IDXGISwapChain4* swapChain = (IDXGISwapChain4*)s_SwapChain1;
+        ComPtr<IDXGIOutput> output;
+        ComPtr<IDXGIOutput6> output6;
+        DXGI_OUTPUT_DESC1 outputDesc;
+        UINT colorSpaceSupport;
+
+        // Query support for ST.2084 on the display and set the color space accordingly
+        if (SUCCEEDED(swapChain->GetContainingOutput(&output)) &&
+            SUCCEEDED(output.As(&output6)) &&
+            SUCCEEDED(output6->GetDesc1(&outputDesc)) &&
+            outputDesc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 &&
+            SUCCEEDED(swapChain->CheckColorSpaceSupport(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020, &colorSpaceSupport)) &&
+            (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) &&
+            SUCCEEDED(swapChain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)))
+        {
+            g_bEnableHDROutput = true;
+        }
+    }
+#endif
+
 
 	ComPtr<ID3D11Texture2D1> BackBuffer;
 	ASSERT_SUCCEEDED(s_SwapChain1->GetBuffer(0, MY_IID_PPV_ARGS(&BackBuffer)));
@@ -433,10 +506,16 @@ void Graphics::Initialize( void )
 	SamplerAnisoWrapDesc.MaxAnisotropy = 4;
 	SamplerAnisoWrap = SamplerAnisoWrapDesc.CreateDescriptor();
 
-	SamplerShadowDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-	SamplerShadowDesc.ComparisonFunc = D3D11_COMPARISON_GREATER_EQUAL;
-	SamplerShadowDesc.SetTextureAddressMode(D3D11_TEXTURE_ADDRESS_CLAMP);
-	SamplerShadow = SamplerShadowDesc.CreateDescriptor();
+	SamplerShadowDescGE.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+	SamplerShadowDescGE.ComparisonFunc = D3D11_COMPARISON_GREATER_EQUAL;
+	SamplerShadowDescGE.SetTextureAddressMode(D3D11_TEXTURE_ADDRESS_CLAMP);
+	SamplerShadowGE = SamplerShadowDescGE.CreateDescriptor();
+
+    SamplerShadowDescLE = SamplerShadowDescGE;
+	SamplerShadowDescLE.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+	SamplerShadowLE = SamplerShadowDescLE.CreateDescriptor();
+
+    SamplerShadow = Math::g_ReverseZ ? SamplerShadowGE : SamplerShadowLE;
 
 	SamplerLinearClampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	SamplerLinearClampDesc.SetTextureAddressMode(D3D11_TEXTURE_ADDRESS_CLAMP);
@@ -476,11 +555,14 @@ void Graphics::Initialize( void )
 	RasterizerTwoSided = RasterizerDefault;
 	RasterizerTwoSided.CullMode = D3D11_CULL_NONE;
 
+	RasterizerWireframe = RasterizerTwoSided;
+	RasterizerWireframe.FillMode = D3D11_FILL_WIREFRAME;
+
 	// Shadows need their own rasterizer state so we can reverse the winding of faces
 	RasterizerShadow = RasterizerDefault;
-	//RasterizerShadow.CullMode = D3D12_CULL_FRONT;  // Hacked here rather than fixing the content
-	RasterizerShadow.SlopeScaledDepthBias = -1.5f;
-	RasterizerShadow.DepthBias = -100;
+	RasterizerShadow.CullMode = D3D11_CULL_FRONT;  // Hacked here rather than fixing the content
+	RasterizerShadow.SlopeScaledDepthBias = Math::g_ReverseZ ? -1.5f : 1.5f;
+	RasterizerShadow.DepthBias = Math::g_ReverseZ ? -100 : 100;
 
 	RasterizerShadowTwoSided = RasterizerShadow;
 	RasterizerShadowTwoSided.CullMode = D3D11_CULL_NONE;
@@ -503,16 +585,13 @@ void Graphics::Initialize( void )
 	DepthStateReadWrite = DepthStateDisabled;
 	DepthStateReadWrite.DepthEnable = TRUE;
 	DepthStateReadWrite.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	DepthStateReadWrite.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
-
-	DepthStateReadWriteLE = DepthStateReadWrite;
-	DepthStateReadWriteLE.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	DepthStateReadWrite.DepthFunc = Math::g_ReverseZ ? D3D11_COMPARISON_GREATER_EQUAL : D3D11_COMPARISON_LESS_EQUAL;
 
 	DepthStateReadOnly = DepthStateReadWrite;
 	DepthStateReadOnly.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 
 	DepthStateReadOnlyReversed = DepthStateReadOnly;
-	DepthStateReadOnlyReversed.DepthFunc = D3D11_COMPARISON_LESS;
+	DepthStateReadOnlyReversed.DepthFunc = Math::g_ReverseZ ? D3D11_COMPARISON_LESS : D3D11_COMPARISON_GREATER;
 
 	DepthStateTestEqual = DepthStateReadOnly;
 	DepthStateTestEqual.DepthFunc = D3D11_COMPARISON_EQUAL;
@@ -571,14 +650,15 @@ void Graphics::Initialize( void )
 
 	g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
 
-    GpuTimeManager::Initialize(4096);
+    GpuTimeManager::Initialize(1024);
 	SetNativeResolution();
-    // TemporalEffects::Initialize();
+    TemporalEffects::Initialize();
     PostEffects::Initialize();
     // SSAO::Initialize();
     TextRenderer::Initialize();
     // GraphRenderer::Initialize();
     // ParticleEffects::Initialize(kMaxNativeWidth, kMaxNativeHeight);
+    Utility::Initialize();
 }
 
 void Graphics::Terminate( void )
@@ -607,8 +687,9 @@ void Graphics::Shutdown( void )
 	DepthStencilState::DestroyAll();
 
     DestroyRenderingBuffers();
-    // TemporalEffects::Shutdown();
+    TemporalEffects::Shutdown();
     PostEffects::Shutdown();
+    Utility::Shutdown();
     // SSAO::Shutdown();
     TextRenderer::Shutdown();
     // GraphRenderer::Shutdown();
@@ -638,7 +719,7 @@ void Graphics::Shutdown( void )
 void Graphics::PreparePresentLDR( void )
 {
 	GraphicsContext& Context = GraphicsContext::Begin(L"Present");
-		
+
 	// We're going to be reading these buffers to write to the swap chain buffer(s)
 	Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -661,13 +742,13 @@ void Graphics::PreparePresentLDR( void )
 		Context.SetRenderTarget(g_HorizontalBuffer.GetRTV());
 		Context.SetViewportAndScissor(0, 0, g_DisplayWidth, g_NativeHeight);
 		Context.SetPipelineState(BicubicHorizontalUpsamplePS);
-		Context.SetConstants( g_NativeWidth, g_NativeHeight, (float)BicubicUpsampleWeight, { kBindPixel, kBindVertex } );
+		Context.SetConstants( 0, g_NativeWidth, g_NativeHeight, (float)BicubicUpsampleWeight, { kBindPixel, kBindVertex } );
 		Context.Draw(3);
 
 		Context.SetRenderTarget(UpsampleDest.GetRTV());
 		Context.SetViewportAndScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
 		Context.SetPipelineState(BicubicVerticalUpsamplePS);
-		Context.SetConstants( g_DisplayWidth, g_NativeHeight, (float)BicubicUpsampleWeight, { kBindPixel, kBindVertex } );
+		Context.SetConstants( 0, g_DisplayWidth, g_NativeHeight, (float)BicubicUpsampleWeight, { kBindPixel, kBindVertex } );
 		Context.SetDynamicDescriptor( 0, g_HorizontalBuffer.GetSRV(), { kBindPixel } );
 		Context.Draw(3);
 	}
@@ -683,7 +764,7 @@ void Graphics::PreparePresentLDR( void )
 		const float WA = (float)SharpeningStrength;
 		const float WB = 1.0f + 4.0f * WA;
 		float Constants[] = { X * TexelWidth, Y * TexelHeight, Y * TexelWidth, -X * TexelHeight, WA, WB };
-		Context.SetConstants( _countof( Constants ), Constants, { kBindPixel } );
+		Context.SetConstants( 0, _countof( Constants ), Constants, { kBindPixel } );
 		Context.Draw(3);
 	}
 	else if (UpsampleFilter == kBilinear)
@@ -699,7 +780,7 @@ void Graphics::PreparePresentLDR( void )
 		Context.SetPipelineState(MagnifyPixelsPS);
 		Context.SetRenderTarget(g_DisplayPlane.GetRTV());
 		Context.SetViewportAndScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
-		Context.SetConstants( DebugZoom == kDebugZoom4x ? 0.25f : 0.5f, { kBindVertex, kBindPixel } );
+		Context.SetConstants( 0, 1.0f / ((int)DebugZoom + 1.0f), { kBindVertex, kBindPixel } );
 		Context.SetDynamicDescriptor(0, g_PreDisplayBuffer.GetSRV(), { kBindPixel } );
 		Context.Draw(3);
 	}
@@ -766,6 +847,7 @@ void Graphics::Present( void )
 	s_FrameStartTick = CurrentTick;
 
 	++s_FrameIndex;
+    TemporalEffects::Update((uint32_t)s_FrameIndex);
 
 	SetNativeResolution();
 }
