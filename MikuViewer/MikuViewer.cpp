@@ -185,6 +185,8 @@ MikuViewer::MikuViewer() : m_pCameraController( nullptr ), m_pSecondCameraContro
     }
 }
 
+const eModelType Type = kModelPMD;
+
 void MikuViewer::Startup( void )
 {
 	TextureManager::Initialize( L"Textures" );
@@ -198,16 +200,19 @@ void MikuViewer::Startup( void )
         XMFLOAT3 Position;
     };
 
-    ModelLoader Loader( L"Models/Tda式初音ミク_デフォ服ver.pmx", L"", XMFLOAT3( 15, 0, 0 ) );
+    auto modelPath = L"Models/Tda式初音ミク_デフォ服ver.pmx";
+    if (Type == kModelPMD)
+        modelPath = L"Models/Lat0.pmd";
+    auto motionPath = L"Motions/nekomimi_lat.vmd";
+    ModelLoader Loader( modelPath, motionPath, XMFLOAT3( 15, 0, 0 ) );
     auto model = Loader.Load();
     if (model)
         m_Models.push_back( model );
 
-    auto motionPath = L"Motions/nekomimi_lat.vmd";
     std::vector<ModelInit> list = {
         // { L"Models/mikudayo-3_6_.pmx", L"", XMFLOAT3( 0, 0, 0 ) },
         // { L"Models/観客_右利き_サイリウム有AL.pmx", L"", XMFLOAT3( 0, 0, 0 ) },
-        { L"Models/Tda式初音ミク_デフォ服ver.pmx", L"", XMFLOAT3( 15, 0, 0 ) },
+        { L"Models/Tda式初音ミク_デフォ服ver.pmx", motionPath, XMFLOAT3( 15, 0, 0 ) },
 #if 0
         { L"Models/Lat0.pmd", motionPath, XMFLOAT3( -10.f, 0.f, 0.f ) },
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
@@ -648,11 +653,11 @@ void MikuViewer::RenderScene( void )
         gfxContext.SetDynamicDescriptor( 4, g_CascadeShadowBuffer.GetSRV(), { kBindPixel } );
         gfxContext.SetViewportAndScissor( m_MainViewport, m_MainScissor );
         gfxContext.SetRenderTarget( g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV() );
-        gfxContext.SetPipelineState( m_OpaquePSO[kModelPMX] );
+        gfxContext.SetPipelineState( m_OpaquePSO[Type] );
         RenderObjects( gfxContext, m_ViewMatrix, m_ProjMatrix, kOpaque );
         RenderObjects( gfxContext, m_ViewMatrix, m_ProjMatrix, kOverlay );
         ModelBase::Flush( gfxContext );
-        gfxContext.SetPipelineState( m_BlendPSO[kModelPMX] );
+        gfxContext.SetPipelineState( m_BlendPSO[Type] );
         RenderObjects( gfxContext, m_ViewMatrix, m_ProjMatrix, kTransparent );
     }
     {

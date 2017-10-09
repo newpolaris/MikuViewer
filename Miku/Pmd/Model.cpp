@@ -275,6 +275,7 @@ bool Model::LoadModel( ArchivePtr& Archive, Path& FilePath )
 		if( boneData.ParentBoneIndex < numBones )
 			parentPos = pmd.m_Bones[boneData.ParentBoneIndex].BoneHeadPosition;
 
+        m_Bones[i].Position = headPos;
 		m_Bones[i].Translate = headPos - parentPos;
 
 		m_BoneIndex[boneData.Name] = i;
@@ -464,10 +465,10 @@ void Model::LoadBoneMotion( const std::vector<Vmd::BoneFrame>& frames )
 
 void Model::SetVisualizeSkeleton()
 {
-	auto numBone = m_Bones.size();
+    auto numBone = m_Bones.size();
 
-	std::vector<Vector3> GlobalPosition( numBone );
-	m_BoneAttribute.resize( numBone );
+    std::vector<Vector3> GlobalPosition( numBone );
+    m_BoneAttribute.resize( numBone );
 
 	for ( auto i = 0; i < numBone; i++ )
 	{
@@ -476,14 +477,14 @@ void Model::SetVisualizeSkeleton()
 		if (parentIndex < numBone)
 			ParentPos = GlobalPosition[parentIndex];
 
-		Vector3 diff = m_Bones[i].Translate;;
+		Vector3 diff = m_Bones[i].Translate;
 		Scalar length = Length( diff );
 		Quaternion Q = RotationBetweenVectors( Vector3( 0.0f, 1.0f, 0.0f ), diff );
 		AffineTransform scale = AffineTransform::MakeScale( Vector3(0.05f, length, 0.05f) );
         // Move primitive bottom to origin
 		AffineTransform alignToOrigin = AffineTransform::MakeTranslation( Vector3(0.0f, 0.5f * length, 0.0f) );
 		GlobalPosition[i] = ParentPos + diff;
-		m_BoneAttribute[i] = AffineTransform(Q, m_Bones[i].Translate) * alignToOrigin * scale;
+		m_BoneAttribute[i] = AffineTransform(Q, ParentPos) * alignToOrigin * scale;
 	}
 }
 
@@ -613,7 +614,7 @@ void Model::UpdateIK(const IK& ik)
 			if (sinTheta < 1.0e-3f)
 				continue;
 
-			// angle to move in one iteration
+			// move angles in one iteration
 			auto maxAngle = (k + 1) * ik.IkLimitedRadian * 4;
 			auto theta = ASin( sinTheta );
 			if (Dot( ikTargetVec, ikBoneVec ) < 0.f)

@@ -69,4 +69,6 @@ TEST(PMXModelTest, ParsePMX)
     EXPECT_EQ( pmx.m_Bones[10].NameEnglish, L"R toe" );
     EXPECT_THAT( Vector3(pmx.m_Bones[10].Position), MatcherNearFast( 1e-3f, Vector3( 0, -1.430512E-07, -1.52403f ) ) );
     EXPECT_EQ( pmx.m_Bones[10].ParentBoneIndex, 9 );
+
+    EXPECT_EQ( pmx.m_IKs.size(), 10 );
 }

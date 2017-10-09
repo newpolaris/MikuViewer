@@ -61,12 +61,15 @@ namespace Pmd {
 	struct Bone
 	{
 		std::wstring Name;
+		Vector3 Position;
 		Vector3 Translate;
 	};
 
 	class Model : public IModel
 	{
 	public:
+
+        virtual eModelType Type() const override { return kModelPMD; }
 
 		Model( bool bRightHand = true );
 		~Model();

@@ -27,6 +27,7 @@ namespace Graphics
     class IModel : public IRenderObject
     {
     public:
+        virtual eModelType Type() const = 0;
         virtual void Draw( GraphicsContext& gfxContext, eObjectFilter Filter ) = 0;
         virtual void Update( float deltaT ) = 0;
         virtual bool LoadModel( ArchivePtr& Archive, Path& FilePath ) = 0;

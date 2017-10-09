@@ -16,6 +16,7 @@
 #include "Encoding.h"
 #include "ModelBase.h"
 #include "CommandContext.h"
+#include "..\Pmd\Model.h"
 
 using namespace DirectX;
 using namespace Graphics;
@@ -242,8 +243,31 @@ bool Model::LoadModel( ArchivePtr& Archive, Path& FilePath )
     for ( auto i = 0; i < numBones; i++)
         m_SkinningDual[i] = OrthogonalTransform();
 
+    for (auto i = 0; i < numBones; i++)
+    {
+        if (!pmx.m_Bones[i].bIK)
+            continue;
+        auto& it = pmx.m_Bones[i].Ik;
+
+        IKAttr attr;
+        attr.BoneIndex = i;
+        attr.TargetBoneIndex = it.BoneIndex;
+        attr.LimitedRadian = it.LimitedRadian;
+        attr.NumIteration = it.NumIteration;
+
+        for (auto& ik : it.Link)
+        {
+            IKChild child;
+            child.BoneIndex = ik.BoneIndex;
+            child.bLimit = ik.bLimit;
+            child.MinLimit = ik.MinLimit;
+            child.MaxLimit = ik.MaxLimit;
+            attr.Link.push_back( child );
+        }
+        m_IKs.push_back( attr );
+    }
+
     /*
-	m_IKs = pmx.m_IKs;
 
 	m_MorphMotions.resize( pmx.m_Faces.size() );
 	for ( auto i = 0; i < pmx.m_Faces.size(); i++ )
@@ -372,7 +396,7 @@ void Model::LoadBoneMotion( const std::vector<Vmd::BoneFrame>& frames )
         auto& parent = m_BoneParent[i];
 
         RestPose[i].SetTranslation( bone.Translate );
-        if (parent < numBones)
+        if (parent >= 0)
             RestPose[i] = RestPose[parent] * RestPose[i];
     }
 
@@ -542,7 +566,10 @@ void Model::Update( float kFrameTime )
 				m_Pose[i] = m_LocalPose[i];
 		}
 
-		// for (auto& ik : m_IKs) UpdateIK( ik );
+    #if 1
+		for (auto& ik : m_IKs)
+            UpdateIK( ik );
+    #endif
 
 		for (auto i = 0; i < numBones; i++)
 			m_Skinning[i] = m_Pose[i] * m_toRoot[i];
@@ -598,8 +625,7 @@ void Model::Update( float kFrameTime )
 // http://d.hatena.ne.jp/edvakf/20111102/1320268602
 // Game programming gems 3 Constrained Inverse Kinematics - Jason Weber
 //
-/*
-void Model::UpdateIK(const Pmd::IK& ik)
+void Model::UpdateIK(const IKAttr& ik)
 {
 	auto GetPosition = [&]( int32_t index ) -> Vector3
 	{
@@ -607,15 +633,15 @@ void Model::UpdateIK(const Pmd::IK& ik)
 	};
 
 	// "effector" (Fixed)
-	const auto ikBonePos = GetPosition( ik.IkBoneIndex );
+	const auto ikBonePos = GetPosition( ik.BoneIndex );
 
-	for (int n = 0; n < ik.IkNumIteration; n++)
+	for (int n = 0; n < ik.NumIteration; n++)
 	{
 		// "effected" bone list in order
-		for (auto k = 0; k < ik.IkLinkBondIndexList.size(); k++)
+		for (auto k = 0; k < ik.Link.size(); k++)
 		{
-			auto childIndex = ik.IkLinkBondIndexList[k];
-			auto ikTargetBonePos = GetPosition( ik.IkTargetBonIndex );
+			auto childIndex = ik.Link[k].BoneIndex;
+			auto ikTargetBonePos = GetPosition( ik.TargetBoneIndex );
 			auto invLinkMtx = Invert( m_Pose[childIndex] );
 
 			//
@@ -632,7 +658,7 @@ void Model::UpdateIK(const Pmd::IK& ik)
 				continue;
 
 			// angle to move in one iteration
-			auto maxAngle = (k + 1) * ik.IkLimitedRadian * 4;
+			auto maxAngle = (k + 1) * ik.LimitedRadian * 4;
 			auto theta = ASin( sinTheta );
 			if (Dot( ikTargetVec, ikBoneVec ) < 0.f)
 				theta = XM_PI - theta;
@@ -693,7 +719,6 @@ void Model::UpdateIK(const Pmd::IK& ik)
 		}
 	}
 }
-*/
 
 void Model::Draw( GraphicsContext& gfxContext, eObjectFilter Filter )
 {

@@ -57,11 +57,30 @@ namespace Pmx {
         Vector3 DestinationOffset;
 	};
 
+    struct IKChild
+    {
+        int32_t BoneIndex;
+        uint8_t bLimit;
+        XMFLOAT3 MinLimit;
+        XMFLOAT3 MaxLimit;
+    };
+
+    struct IKAttr
+    {
+        int32_t BoneIndex;
+        int32_t TargetBoneIndex;
+        int32_t NumIteration;
+        float LimitedRadian;
+        std::vector<IKChild> Link;
+    };
+
     class Model final : public IModel
     {
     public:
         static void Initialize();
         static void Shutdown();
+
+        virtual eModelType Type() const override { return kModelPMX; }
 
         Model( bool bRightHand = true );
         ~Model();
@@ -89,7 +108,7 @@ namespace Pmx {
         void LoadBoneMotion( const std::vector<Vmd::BoneFrame>& frames );
         void SetBoneNum( size_t numBones );
 
-        // void UpdateIK( const Pmx::IK& ik );
+        void UpdateIK( const IKAttr& ik );
         void UpdateChildPose( int32_t idx );
 
     public:
@@ -98,8 +117,8 @@ namespace Pmx {
         std::wstring m_MotionPath;
         std::vector<Mesh> m_Mesh;
         std::vector<Bone> m_Bones;
-        // std::vector<Pmx::IK> m_IKs;
-        std::vector<OrthogonalTransform> m_toRoot; // inverse inital pose ( inverse Rest)
+        std::vector<IKAttr> m_IKs;
+        std::vector<OrthogonalTransform> m_toRoot; // inverse inital pose (inverse Rest)
         std::vector<OrthogonalTransform> m_LocalPose; // offset matrix
         std::vector<OrthogonalTransform> m_Pose; // cumulative transfrom matrix from root
         std::vector<OrthogonalTransform> m_Skinning; // final skinning transform
