@@ -44,7 +44,7 @@ namespace Pmd
 		XMFLOAT2 UV;
 		uint16_t Bone_id[2];	// bone number 1, 2
 		uint8_t  Bone_weight;	// Effect to bone1 [0, 100], bone2 has 100 - bone1
-		uint8_t  Edge_flat;		// Edge Flag (Determines if this vertex should be used to draw the edge line around the model) 
+		uint8_t  Edge_flat;		// Edge Flag (Determines if this vertex should be used to draw the edge line around the model)
 
 		void Fill( bufferstream& is, bool bRH );
 	};

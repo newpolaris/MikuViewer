@@ -275,6 +275,8 @@ bool Model::LoadModel( ArchivePtr& Archive, Path& FilePath )
 		if( boneData.ParentBoneIndex < numBones )
 			parentPos = pmd.m_Bones[boneData.ParentBoneIndex].BoneHeadPosition;
 
+        m_Bones[i].BoneType = pmd.m_Bones[i].Type;
+        m_Bones[i].ChildBoneIndex = pmd.m_Bones[i].ChildBoneIndex;
         m_Bones[i].Position = headPos;
 		m_Bones[i].Translate = headPos - parentPos;
 
@@ -467,24 +469,23 @@ void Model::SetVisualizeSkeleton()
 {
     auto numBone = m_Bones.size();
 
-    std::vector<Vector3> GlobalPosition( numBone );
     m_BoneAttribute.resize( numBone );
 
 	for ( auto i = 0; i < numBone; i++ )
 	{
-		auto parentIndex = m_BoneParent[i];
-		Vector3 ParentPos = Vector3( kZero );
-		if (parentIndex < numBone)
-			ParentPos = GlobalPosition[parentIndex];
-
-		Vector3 diff = m_Bones[i].Translate;
+        auto DestinationIndex = m_Bones[i].ChildBoneIndex;
+        Vector3 DestinationOffset = Vector3( 0 );
+        if (DestinationIndex < numBone)
+            DestinationOffset = m_Bones[DestinationIndex].Position - m_Bones[i].Position;
+		Vector3 diff = DestinationOffset;
 		Scalar length = Length( diff );
 		Quaternion Q = RotationBetweenVectors( Vector3( 0.0f, 1.0f, 0.0f ), diff );
 		AffineTransform scale = AffineTransform::MakeScale( Vector3(0.05f, length, 0.05f) );
         // Move primitive bottom to origin
 		AffineTransform alignToOrigin = AffineTransform::MakeTranslation( Vector3(0.0f, 0.5f * length, 0.0f) );
-		GlobalPosition[i] = ParentPos + diff;
-		m_BoneAttribute[i] = AffineTransform(Q, ParentPos) * alignToOrigin * scale;
+		m_BoneAttribute[i] = AffineTransform(Q, m_Bones[i].Position) * alignToOrigin * scale;
+        if (DestinationIndex == 0 || m_Bones[i].BoneType == Pmd::BoneType::kInvisible)
+            m_BoneAttribute[i] = AffineTransform( Vector3( kZero ), Vector3( kZero ), Vector3( kZero ), Vector3( kZero ) );
 	}
 }
 
@@ -722,6 +723,7 @@ void Model::DrawBone()
     if (!ModelBase::s_bEnableDrawBone)
         return;
 	auto numBones = m_BoneAttribute.size();
+    // for (auto i : { 3,4,5,6})
 	for (auto i = 0; i < numBones; i++)
         ModelBase::Append( ModelBase::kBoneMesh, m_ModelTransform * m_Skinning[i] * m_BoneAttribute[i] );
 }

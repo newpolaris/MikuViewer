@@ -61,6 +61,8 @@ namespace Pmd {
 	struct Bone
 	{
 		std::wstring Name;
+        Pmd::BoneType BoneType;
+        uint32_t ChildBoneIndex;
 		Vector3 Position;
 		Vector3 Translate;
 	};
