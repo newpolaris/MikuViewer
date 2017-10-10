@@ -10,7 +10,7 @@ namespace Animation
 	using namespace Math;
 
 	enum EInterpolation : uint8_t {
-		kInterpX = 0, kInterpY, kInterpZ, kInterpR, kInterpD, kInterpA 
+		kInterpX = 0, kInterpY, kInterpZ, kInterpR, kInterpD, kInterpA
 	};
 
 	float Bezier( Vector4 C, float p );
@@ -18,7 +18,7 @@ namespace Animation
 	struct BoneKeyFrame
 	{
 		int Frame;
-		OrthogonalTransform Local; 
+		OrthogonalTransform Local;
 		Vector4 BezierCoeff[kInterpR+1];
 	};
 
@@ -36,13 +36,13 @@ namespace Animation
 	struct MorphKeyFrame
 	{
 		int32_t Frame;
-		float Weight; 
+		float Weight;
 	};
 
 	class MorphMotion
 	{
 	public:
-		std::wstring m_Name; 
+		std::wstring m_Name;
 		std::vector<MorphKeyFrame> m_KeyFrames;
 		std::vector<uint32_t> m_MorphIndices;
 		std::vector<Vector3> m_MorphVertices;
@@ -62,10 +62,10 @@ namespace Animation
 		bool bPerspective;
 		float FovY;
 		float Distance;
-		Vector3 Position; 
+		Vector3 Position;
 		Quaternion Rotation;
 	};
-	
+
 	struct CameraKeyFrame
 	{
 		int Frame;

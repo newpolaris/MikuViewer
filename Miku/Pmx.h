@@ -205,7 +205,9 @@ namespace Pmx
         int32_t DestinationOriginIndex; // if BitFlag & kHasDestinationOriginIndex, given by bone index
         XMFLOAT3 DestinationOriginOffset; // else given by offset
 
-        // Additional bias bone (Inherent Rotation | Translation from parent)
+        // Additional bias bone (Inherent Rotation | Inherent Translation) from parent
+        bool bInherentRotation = false;
+        bool bInherentTranslation = false;
         int32_t ParentInherentBoneIndex;
         float ParentInherentBoneCoefficent;
 

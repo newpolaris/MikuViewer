@@ -234,9 +234,15 @@ bool Model::LoadModel( ArchivePtr& Archive, Path& FilePath )
         m_Bones[i].Position = origin;
         m_Bones[i].DestinationIndex = boneData.DestinationOriginIndex;
         m_Bones[i].DestinationOffset = boneData.DestinationOriginOffset;
+        m_Bones[i].bInherentRotation = boneData.bInherentRotation;
+        m_Bones[i].bInherentTranslation = boneData.bInherentTranslation;
+        m_Bones[i].ParentInherentBoneIndex = boneData.ParentInherentBoneIndex;
+        m_Bones[i].ParentInherentBoneCoefficent = boneData.ParentInherentBoneCoefficent;
 
 		m_BoneIndex[boneData.Name] = i;
 	}
+    localInherentOrientations.resize( numBones );
+    localInherentTranslations.resize( numBones, Vector3(kZero) );
 
     m_Skinning.resize( numBones );
     m_SkinningDual.resize( numBones );
@@ -388,7 +394,7 @@ void Model::LoadBoneMotion( const std::vector<Vmd::BoneFrame>& frames )
 
     for (auto i = 0; i < m_Bones.size(); i++)
         m_LocalPose[i].SetTranslation( m_Bones[i].Translate );
-
+    m_LocalPose2 = m_LocalPose;
     std::vector<OrthogonalTransform> RestPose( numBones );
     for (auto i = 0; i < numBones; i++)
     {
@@ -549,14 +555,68 @@ void Model::UpdateChildPose( int32_t idx )
 		UpdateChildPose( c );
 }
 
+// MMDAI's code
+// Copyright (c) 2010-2014  hkrn
+void Model::PerformTransform(uint32_t i)
+{
+    Quaternion orientation( kIdentity );
+    if (m_Bones[i].bInherentRotation) {
+        uint32_t InherentRefIndex = m_Bones[i].ParentInherentBoneIndex;
+        ASSERT( InherentRefIndex >= 0 );
+        Bone* parentBoneRef = &m_Bones[InherentRefIndex];
+        // If parent also Inherenet, then it has updated value. So, use cached one
+        if (parentBoneRef->bInherentRotation) {
+            orientation *= localInherentOrientations[InherentRefIndex];
+        }
+        else {
+            orientation *= m_LocalPose[InherentRefIndex].GetRotation();
+        }
+        if (!Near( m_Bones[i].ParentInherentBoneCoefficent, 1.f, FLT_EPSILON )) {
+            orientation = Slerp( Quaternion( kIdentity ), orientation, m_Bones[i].ParentInherentBoneCoefficent );
+        }
+    #if 0
+        if (parentBoneRef && parentBoneRef->hasInverseKinematics()) {
+            orientation *= parentBoneRef->m_context->jointOrientation;
+        }
+    #endif
+        localInherentOrientations[i] = Normalize(orientation * m_LocalPose[i].GetRotation());
+    }
+    orientation *= m_LocalPose[i].GetRotation();
+    orientation = Normalize( orientation );
+    Vector3 translation( kZero );
+    if (m_Bones[i].bInherentTranslation) {
+        uint32_t InherentRefIndex = m_Bones[i].ParentInherentBoneIndex;
+        ASSERT( InherentRefIndex >= 0 );
+        Bone* parentBoneRef = &m_Bones[InherentRefIndex];
+        if (parentBoneRef) {
+            if (parentBoneRef->bInherentTranslation) {
+                translation += localInherentTranslations[InherentRefIndex];
+            }
+            else {
+                translation += m_LocalPose[InherentRefIndex].GetTranslation();
+            }
+        }
+        if (!Near( m_Bones[i].ParentInherentBoneCoefficent, 1.f, FLT_EPSILON )) {
+            translation *= Scalar(m_Bones[i].ParentInherentBoneCoefficent);
+        }
+        localInherentTranslations[i] = translation;
+    }
+    translation += m_LocalPose[i].GetTranslation();
+    m_LocalPose[i].SetRotation( orientation );
+    m_LocalPose[i].SetTranslation( translation );
+}
+
+static float kP = 0.f;
 void Model::Update( float kFrameTime )
 {
 	if (m_BoneMotions.size() > 0)
 	{
-		size_t numBones = m_BoneMotions.size();
-		for (auto i = 0; i < numBones; i++)
+        m_LocalPose = m_LocalPose2;
+        size_t numMotions = m_BoneMotions.size();
+		for (auto i = 0; i < numMotions; i++)
 			m_BoneMotions[i].Interpolate( kFrameTime, m_LocalPose[i] );
 
+		size_t numBones = m_Bones.size();
 		for (auto i = 0; i < numBones; i++)
 		{
 			auto parentIndex = m_BoneParent[i];
@@ -570,6 +630,16 @@ void Model::Update( float kFrameTime )
 		for (auto& ik : m_IKs)
             UpdateIK( ik );
     #endif
+        for (auto i = 0; i < numBones; i++)
+            PerformTransform( i );
+		for (auto i = 0; i < numBones; i++)
+		{
+			auto parentIndex = m_BoneParent[i];
+			if (parentIndex < numBones)
+				m_Pose[i] = m_Pose[parentIndex] * m_LocalPose[i];
+			else
+				m_Pose[i] = m_LocalPose[i];
+		}
 
 		for (auto i = 0; i < numBones; i++)
 			m_Skinning[i] = m_Pose[i] * m_toRoot[i];
@@ -765,7 +835,8 @@ void Model::DrawBone()
     if (!ModelBase::s_bEnableDrawBone)
         return;
 	auto numBones = m_BoneAttribute.size();
-	for (auto i = 0; i < numBones; i++)
+	// for (auto i = 0; i < numBones; i++)
+    for (auto i : { 129, 130, 131, 132 })
         ModelBase::Append( ModelBase::kBoneMesh, m_ModelTransform * m_Skinning[i] * m_BoneAttribute[i] );
 }
 

@@ -55,6 +55,10 @@ namespace Pmx {
         Vector3 Position;
         int32_t DestinationIndex;
         Vector3 DestinationOffset;
+        bool bInherentRotation = false;
+        bool bInherentTranslation = false;
+        int32_t ParentInherentBoneIndex = -1;
+        float ParentInherentBoneCoefficent = 0.f;
 	};
 
     struct IKChild
@@ -106,8 +110,8 @@ namespace Pmx {
         void DrawBoundingSphere( void );
         void SetVisualizeSkeleton();
         void LoadBoneMotion( const std::vector<Vmd::BoneFrame>& frames );
+        void PerformTransform(uint32_t i);
         void SetBoneNum( size_t numBones );
-
         void UpdateIK( const IKAttr& ik );
         void UpdateChildPose( int32_t idx );
 
@@ -118,8 +122,11 @@ namespace Pmx {
         std::vector<Mesh> m_Mesh;
         std::vector<Bone> m_Bones;
         std::vector<IKAttr> m_IKs;
+        std::vector<Quaternion> localInherentOrientations;
+        std::vector<Vector3> localInherentTranslations;
         std::vector<OrthogonalTransform> m_toRoot; // inverse inital pose (inverse Rest)
         std::vector<OrthogonalTransform> m_LocalPose; // offset matrix
+        std::vector<OrthogonalTransform> m_LocalPose2; // offset matrix
         std::vector<OrthogonalTransform> m_Pose; // cumulative transfrom matrix from root
         std::vector<OrthogonalTransform> m_Skinning; // final skinning transform
         std::vector<DualQuaternion> m_SkinningDual; // final skinning transform

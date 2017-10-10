@@ -5,7 +5,7 @@ struct SkinData
 #ifdef SKINNING_DLB
 	float4 boneDualQuat[256][2];
 #elif SKINNING_LBS
-    matrix boneMatrix[256];
+    matrix boneMatrix[1024];
 #endif
 };
 

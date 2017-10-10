@@ -239,11 +239,13 @@ namespace Pmx
         if (BitFlag & kHasDestinationOriginIndex)
             DestinationOriginIndex = ReadIndex( is, boneIndexByteSize );
         else
-            Read( is, DestinationOriginOffset );
+            ReadPosition( is, DestinationOriginOffset, bRH );
 
         // bone has additional bias
         if (BitFlag & kHasInherentRotation || BitFlag & kHasInherentTranslation)
         {
+            bInherentTranslation = BitFlag & kHasInherentTranslation;
+            bInherentRotation = BitFlag & kHasInherentRotation;
             ParentInherentBoneIndex = ReadIndex( is, boneIndexByteSize );
             Read( is, ParentInherentBoneCoefficent );
         }

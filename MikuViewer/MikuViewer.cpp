@@ -185,7 +185,7 @@ MikuViewer::MikuViewer() : m_pCameraController( nullptr ), m_pSecondCameraContro
     }
 }
 
-const eModelType Type = kModelPMD;
+const eModelType Type = kModelPMX;
 
 void MikuViewer::Startup( void )
 {
@@ -201,9 +201,11 @@ void MikuViewer::Startup( void )
     };
 
     auto modelPath = L"Models/Tda式初音ミク_デフォ服ver.pmx";
+    // auto modelPath = L"Models/Tda式初音ミク_デフォ服ver_ShapeChange2.pmx";
     if (Type == kModelPMD)
         modelPath = L"Models/Lat0.pmd";
     auto motionPath = L"Motions/nekomimi_lat.vmd";
+    // auto motionPath = L"";
     ModelLoader Loader( modelPath, motionPath, XMFLOAT3( 15, 0, 0 ) );
     auto model = Loader.Load();
     if (model)

@@ -136,7 +136,7 @@ namespace Pmd {
         BoundingBox m_BoundingBox;
 
         std::vector<AffineTransform> m_BoneAttribute;
-	};
+    };
 
     inline void Model::SetPosition( Vector3 postion )
     {
