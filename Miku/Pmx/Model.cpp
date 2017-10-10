@@ -244,6 +244,12 @@ bool Model::LoadModel( ArchivePtr& Archive, Path& FilePath )
     localInherentOrientations.resize( numBones );
     localInherentTranslations.resize( numBones, Vector3(kZero) );
 
+    m_Pose.resize( numBones );
+    m_LocalPoseDefault.resize( numBones );
+    for (auto i = 0; i < m_Bones.size(); i++)
+        m_LocalPoseDefault[i].SetTranslation( m_Bones[i].Translate );
+    m_LocalPose = m_LocalPoseDefault;
+    m_toRoot.resize( numBones );
     m_Skinning.resize( numBones );
     m_SkinningDual.resize( numBones );
     for ( auto i = 0; i < numBones; i++)
@@ -272,6 +278,20 @@ bool Model::LoadModel( ArchivePtr& Archive, Path& FilePath )
         }
         m_IKs.push_back( attr );
     }
+
+    std::vector<OrthogonalTransform> RestPose( numBones );
+    for (auto i = 0; i < numBones; i++)
+    {
+        auto& bone = m_Bones[i];
+        auto& parent = m_BoneParent[i];
+
+        RestPose[i].SetTranslation( bone.Translate );
+        if (parent >= 0)
+            RestPose[i] = RestPose[parent] * RestPose[i];
+    }
+
+    for (auto i = 0; i < numBones; i++)
+        m_toRoot[i] = ~RestPose[i];
 
     /*
 
@@ -368,11 +388,6 @@ void Model::LoadBoneMotion( const std::vector<Vmd::BoneFrame>& frames )
     int32_t numBones = static_cast<int32_t>(m_Bones.size());
 
     m_BoneMotions.resize( numBones );
-    m_Pose.resize( numBones );
-    m_LocalPose.resize( numBones );
-    m_toRoot.resize( numBones );
-    m_Skinning.resize( numBones );
-    m_SkinningDual.resize( numBones );
 
     for (auto i = 0; i < numBones; i++)
     {
@@ -391,24 +406,6 @@ void Model::LoadBoneMotion( const std::vector<Vmd::BoneFrame>& frames )
         if (std::string::npos != bone.Name.find( L"ひざ" ))
             meshBone.bLimitXAngle = true;
     }
-
-    for (auto i = 0; i < m_Bones.size(); i++)
-        m_LocalPose[i].SetTranslation( m_Bones[i].Translate );
-    m_LocalPose2 = m_LocalPose;
-    std::vector<OrthogonalTransform> RestPose( numBones );
-    for (auto i = 0; i < numBones; i++)
-    {
-        auto& bone = m_Bones[i];
-        auto& parent = m_BoneParent[i];
-
-        RestPose[i].SetTranslation( bone.Translate );
-        if (parent >= 0)
-            RestPose[i] = RestPose[parent] * RestPose[i];
-    }
-
-    for (auto i = 0; i < numBones; i++)
-        m_toRoot[i] = ~RestPose[i];
-
 	for (auto& frame : frames)
 	{
 		if ( m_BoneIndex.count( frame.BoneName ) == 0)
@@ -545,19 +542,9 @@ void Model::Clear()
 	m_IndexBuffer.Destroy();
 }
 
-void Model::UpdateChildPose( int32_t idx )
-{
-	auto parentIndex = m_BoneParent[idx];
-	if (parentIndex >= 0)
-		m_Pose[idx] = m_Pose[parentIndex] * m_LocalPose[idx];
-
-	for (auto c : m_BoneChild[idx])
-		UpdateChildPose( c );
-}
-
-// MMDAI's code
+// Use code from 'MMDAI'
 // Copyright (c) 2010-2014  hkrn
-void Model::PerformTransform(uint32_t i)
+void Model::PerformTransform( uint32_t i )
 {
     Quaternion orientation( kIdentity );
     if (m_Bones[i].bInherentRotation) {
@@ -574,11 +561,6 @@ void Model::PerformTransform(uint32_t i)
         if (!Near( m_Bones[i].ParentInherentBoneCoefficent, 1.f, FLT_EPSILON )) {
             orientation = Slerp( Quaternion( kIdentity ), orientation, m_Bones[i].ParentInherentBoneCoefficent );
         }
-    #if 0
-        if (parentBoneRef && parentBoneRef->hasInverseKinematics()) {
-            orientation *= parentBoneRef->m_context->jointOrientation;
-        }
-    #endif
         localInherentOrientations[i] = Normalize(orientation * m_LocalPose[i].GetRotation());
     }
     orientation *= m_LocalPose[i].GetRotation();
@@ -606,44 +588,23 @@ void Model::PerformTransform(uint32_t i)
     m_LocalPose[i].SetTranslation( translation );
 }
 
-static float kP = 0.f;
 void Model::Update( float kFrameTime )
 {
 	if (m_BoneMotions.size() > 0)
 	{
-        m_LocalPose = m_LocalPose2;
-        size_t numMotions = m_BoneMotions.size();
+        m_LocalPose = m_LocalPoseDefault;
+        const size_t numMotions = m_BoneMotions.size();
 		for (auto i = 0; i < numMotions; i++)
 			m_BoneMotions[i].Interpolate( kFrameTime, m_LocalPose[i] );
-
-		size_t numBones = m_Bones.size();
-		for (auto i = 0; i < numBones; i++)
-		{
-			auto parentIndex = m_BoneParent[i];
-			if (parentIndex < numBones)
-				m_Pose[i] = m_Pose[parentIndex] * m_LocalPose[i];
-			else
-				m_Pose[i] = m_LocalPose[i];
-		}
-
-    #if 1
+        UpdatePose();
 		for (auto& ik : m_IKs)
             UpdateIK( ik );
-    #endif
+		const size_t numBones = m_Bones.size();
         for (auto i = 0; i < numBones; i++)
             PerformTransform( i );
-		for (auto i = 0; i < numBones; i++)
-		{
-			auto parentIndex = m_BoneParent[i];
-			if (parentIndex < numBones)
-				m_Pose[i] = m_Pose[parentIndex] * m_LocalPose[i];
-			else
-				m_Pose[i] = m_LocalPose[i];
-		}
-
+        UpdatePose();
 		for (auto i = 0; i < numBones; i++)
 			m_Skinning[i] = m_Pose[i] * m_toRoot[i];
-
 		for (auto i = 0; i < numBones; i++)
             m_SkinningDual[i] = m_Skinning[i];
 	}
@@ -688,12 +649,35 @@ void Model::Update( float kFrameTime )
 	}
 }
 
+void Model::UpdateChildPose( int32_t idx )
+{
+	auto parentIndex = m_BoneParent[idx];
+	if (parentIndex >= 0)
+		m_Pose[idx] = m_Pose[parentIndex] * m_LocalPose[idx];
+    else
+		m_Pose[idx] = m_LocalPose[idx];
+	for (auto c : m_BoneChild[idx])
+		UpdateChildPose( c );
+}
+
+void Model::UpdatePose()
+{
+    const size_t numBones = m_Bones.size();
+    for (auto i = 0; i < numBones; i++)
+    {
+        auto parentIndex = m_BoneParent[i];
+        if (parentIndex < numBones)
+            m_Pose[i] = m_Pose[parentIndex] * m_LocalPose[i];
+        else
+            m_Pose[i] = m_LocalPose[i];
+    }
+}
+
 //
 // Solve Constrainted IK
 // Cyclic-Coordinate-Descent（CCD）
 //
 // http://d.hatena.ne.jp/edvakf/20111102/1320268602
-// Game programming gems 3 Constrained Inverse Kinematics - Jason Weber
 //
 void Model::UpdateIK(const IKAttr& ik)
 {
@@ -702,91 +686,63 @@ void Model::UpdateIK(const IKAttr& ik)
 		return Vector3(m_Pose[index].GetTranslation());
 	};
 
-	// "effector" (Fixed)
+	// "effector" (Fixed, IK bone)
 	const auto ikBonePos = GetPosition( ik.BoneIndex );
 
 	for (int n = 0; n < ik.NumIteration; n++)
 	{
-		// "effected" bone list in order
+		// "effected" bone listed in order
 		for (auto k = 0; k < ik.Link.size(); k++)
 		{
-			auto childIndex = ik.Link[k].BoneIndex;
-			auto ikTargetBonePos = GetPosition( ik.TargetBoneIndex );
-			auto invLinkMtx = Invert( m_Pose[childIndex] );
+            // TargetVector (link-target) is updated in each iteration
+            // toward IkVector (link-ik)
+            const auto ikTargetBonePos = GetPosition( ik.TargetBoneIndex );
 
-			//
+			if (Length(ikBonePos - ikTargetBonePos) < 0.0001f)
+				return;
+
+			auto linkIndex = ik.Link[k].BoneIndex;
+			auto invLinkMtx = Invert( m_Pose[linkIndex] );
+
 			// transform to child bone's local coordinate.
-			// note that even if pos is vector3 type, it is calcurated by affine tranform.
-			//
 			auto ikTargetVec = Vector3( invLinkMtx * ikTargetBonePos );
 			auto ikBoneVec = Vector3( invLinkMtx * ikBonePos );
 
-			auto axis = Cross( ikBoneVec, ikTargetVec );
-			auto axisLen = Length( axis );
-			auto sinTheta = axisLen / Length( ikTargetVec ) / Length( ikBoneVec );
-			if (sinTheta < 1.0e-3f)
+            // IK link's coordinate, rotate target vector V_T to V_Ik
+
+			// Use code from 'ray'
+            // Copyright (c) 2015-2017  ray
+			Vector3 srcLocal = Normalize(ikTargetVec);
+			Vector3 dstLocal = Normalize(ikBoneVec);
+
+            if (Length( srcLocal - dstLocal) < 0.0001f)
+                return;
+
+			float rotationDotProduct = Dot(dstLocal, srcLocal);
+            float rotationAngle = ACos( rotationDotProduct );
+            rotationAngle = min( ik.LimitedRadian, rotationAngle );
+
+			if (rotationAngle < 0.0001f)
 				continue;
 
-			// angle to move in one iteration
-			auto maxAngle = (k + 1) * ik.LimitedRadian * 4;
-			auto theta = ASin( sinTheta );
-			if (Dot( ikTargetVec, ikBoneVec ) < 0.f)
-				theta = XM_PI - theta;
-			if (theta > maxAngle)
-				theta = maxAngle;
+			Vector3 rotationAxis = Cross(srcLocal, dstLocal);
+			rotationAxis = Normalize(rotationAxis);
 
-			auto rotBase = m_LocalPose[childIndex].GetRotation();
-			auto translate = m_LocalPose[childIndex].GetTranslation();
+			Quaternion q0(rotationAxis, rotationAngle);
 
-			// To apply base coordinate system which it is base on, inverted theta direction
-			Quaternion rotNext( axis, -theta );
-			auto rotFinish = rotBase * rotNext;
-
-			// Constraint IK, restrict rotation angle
-			if (m_BoneMotions[childIndex].bLimitXAngle)
+			if (ik.Link[k].bLimit)
 			{
-#ifndef EXPERIMENT_IK
-				// c = cos(theta / 2)
-				auto c = XMVectorGetW( rotFinish );
-				// s = sin(theta / 2)
-				auto s = Sqrt( 1.0f - c*c );
-				rotFinish = Quaternion( Vector4( s, 0, 0, c ) );
-				if (!m_bRightHand)
-				{
-					auto a = -std::asin( s );
-					rotFinish = Quaternion( Vector4( std::sin( a ), 0, 0, std::cos( a ) ) );
-				}
-#else
-				//
-				// MMD-Agent PMDIK
-				//
-				// when this is the first iteration, we force rotating to the maximum angle toward limited direction
-				// this will help convergence the whole IK step earlier for most of models, especially for legs
-				if (n == 0)
-				{
-					if (theta < 0.0f)
-						theta = -theta;
-					rotFinish = rotBase * Quaternion( Vector3( 1.0f, 0.f, 0.f ), theta );
-				}
-				else
-				{
-					//
-					// Needed to stable IK result (esp. Ankle)
-					// The value obtained from the test
-					//
-					const Scalar PMDMinRotX = 0.10f;
-					auto next = rotNext.toEuler();
-					auto base = rotBase.toEuler();
-
-					auto sum = Clamp( next.GetX() + base.GetX(), PMDMinRotX, Scalar(XM_PI) );
-					next = Vector3( sum - base.GetX(), 0.f, 0.f );
-					rotFinish = rotBase * Quaternion( next.GetX(), next.GetY(), next.GetZ() );
-				}
-#endif
+				Vector3 euler(q0.toEuler());
+                // due to rightHand min, max is swap needed
+                euler = Clamp( euler, ik.Link[k].MaxLimit, ik.Link[k].MinLimit );
+                q0 = Quaternion( euler.GetX(), euler.GetY(), euler.GetZ() );
 			}
-			m_LocalPose[childIndex] = OrthogonalTransform( rotFinish, translate );
-			UpdateChildPose( childIndex );
-		}
+
+            auto& linkLocalPose = m_LocalPose[linkIndex];
+			Quaternion qq = q0 * linkLocalPose.GetRotation();
+			linkLocalPose = OrthogonalTransform( qq, linkLocalPose.GetTranslation() );
+			UpdateChildPose( linkIndex );
+        }
 	}
 }
 
@@ -835,8 +791,7 @@ void Model::DrawBone()
     if (!ModelBase::s_bEnableDrawBone)
         return;
 	auto numBones = m_BoneAttribute.size();
-	// for (auto i = 0; i < numBones; i++)
-    for (auto i : { 129, 130, 131, 132 })
+	for (auto i = 0; i < numBones; i++)
         ModelBase::Append( ModelBase::kBoneMesh, m_ModelTransform * m_Skinning[i] * m_BoneAttribute[i] );
 }
 

@@ -51,7 +51,7 @@ float Animation::Bezier( Vector4 C, float p )
 		else
 			high = mid;
 	}
-	float t = (low + high) / 2, s = 1.0f - t;	
+	float t = (low + high) / 2, s = 1.0f - t;
 	return 3 * s*s*t*y1 + 3 * s*t*t*y2 + t*t*t;
 }
 
@@ -79,10 +79,10 @@ void BoneMotion::SortKeyFrame()
 	});
 }
 
-void BoneMotion::Interpolate( float t, OrthogonalTransform & local )
+void BoneMotion::Interpolate( float t, OrthogonalTransform& local )
 {
-	if (m_KeyFrames.size() == 0)
-		return;
+    if (m_KeyFrames.size() == 0)
+        return;
 
 	auto& first = m_KeyFrames.front();
 	auto& last = m_KeyFrames.back();
@@ -109,7 +109,7 @@ void BoneMotion::Interpolate( float t, OrthogonalTransform & local )
 		float c[kInterpR+1];
 		for (uint8_t k = kInterpX; k <= kInterpR; k++)
 			c[k] = Bezier( a.BezierCoeff[k], p );
-		
+
 		local.SetTranslation( Lerp( a.Local.GetTranslation(), b.Local.GetTranslation(), Vector3( c[kInterpX], c[kInterpY], c[kInterpZ] ) ) );
 		local.SetRotation( Slerp( a.Local.GetRotation(), b.Local.GetRotation(), c[kInterpR] ) );
 	}
@@ -151,7 +151,7 @@ void MorphMotion::InsertKeyFrame( const MorphKeyFrame& frame )
 
 void MorphMotion::SortKeyFrame()
 {
-	std::sort( m_KeyFrames.begin(), m_KeyFrames.end(), 
+	std::sort( m_KeyFrames.begin(), m_KeyFrames.end(),
 		[]( auto& a, auto& b ) { return a.Frame < b.Frame; } );
 }
 
@@ -201,7 +201,7 @@ CameraFrame CameraMotion::Interpolate( float t )
 		float c[kInterpA+1];
 		for (uint8_t k = kInterpX; k <= kInterpA; k++)
 			c[k] = Bezier( a.BezierCoeff[k], p );
-		
+
 		Data.Position = Lerp( a.Data.Position, b.Data.Position, Vector3( c[kInterpX], c[kInterpY], c[kInterpZ] ) );
 		Data.Rotation = Slerp( a.Data.Rotation, b.Data.Rotation, c[kInterpR] );
 		Data.Distance = Lerp( a.Data.Distance, b.Data.Distance, c[kInterpD] );

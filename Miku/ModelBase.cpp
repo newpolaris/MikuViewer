@@ -16,7 +16,7 @@ using namespace Graphics::ModelBase;
 
 namespace Graphics {
 namespace ModelBase {
-    BoolVar s_bEnableDrawBone( "Application/Model/Draw Bone", true );
+    BoolVar s_bEnableDrawBone( "Application/Model/Draw Bone", false );
     BoolVar s_bEnableDrawBoundingSphere( "Application/Model/Draw Bounding Shphere", false );
     // If model is mixed with sky box, model's boundary is exculde by 's_ExcludeRange'
     BoolVar s_bExcludeSkyBox( "Application/Model/Exclude Sky Box", true );

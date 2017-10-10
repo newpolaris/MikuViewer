@@ -114,6 +114,7 @@ namespace Pmx {
         void SetBoneNum( size_t numBones );
         void UpdateIK( const IKAttr& ik );
         void UpdateChildPose( int32_t idx );
+        void UpdatePose();
 
     public:
         bool m_bRightHand;
@@ -126,7 +127,7 @@ namespace Pmx {
         std::vector<Vector3> localInherentTranslations;
         std::vector<OrthogonalTransform> m_toRoot; // inverse inital pose (inverse Rest)
         std::vector<OrthogonalTransform> m_LocalPose; // offset matrix
-        std::vector<OrthogonalTransform> m_LocalPose2; // offset matrix
+        std::vector<OrthogonalTransform> m_LocalPoseDefault; // offset matrix
         std::vector<OrthogonalTransform> m_Pose; // cumulative transfrom matrix from root
         std::vector<OrthogonalTransform> m_Skinning; // final skinning transform
         std::vector<DualQuaternion> m_SkinningDual; // final skinning transform

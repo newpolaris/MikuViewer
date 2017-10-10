@@ -201,11 +201,13 @@ void MikuViewer::Startup( void )
     };
 
     auto modelPath = L"Models/Tda式初音ミク_デフォ服ver.pmx";
-    // auto modelPath = L"Models/Tda式初音ミク_デフォ服ver_ShapeChange2.pmx";
+    // auto modelPath = L"Models/Tda式初音ミク_デフォ服ver_ShapeChange3.pmx";
+    // auto modelPath = L"Models/onda_mod_SHIMAKAZE_v090.pmx";
     if (Type == kModelPMD)
         modelPath = L"Models/Lat0.pmd";
-    auto motionPath = L"Motions/nekomimi_lat.vmd";
     // auto motionPath = L"";
+    auto motionPath = L"Motions/nekomimi_lat.vmd";
+    // auto motionPath = L"Motions/Viva Happy Motion (Imai).vmd";
     ModelLoader Loader( modelPath, motionPath, XMFLOAT3( 15, 0, 0 ) );
     auto model = Loader.Load();
     if (model)
