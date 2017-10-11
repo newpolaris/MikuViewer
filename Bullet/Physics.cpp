@@ -22,8 +22,10 @@
 
 namespace Physics
 {
+    // Use interpolation to set body transfrom, it could case some gap betweeen
+    // debug polygon and object position
     BoolVar s_bInterpolation( "Application/Physics/Motion Interpolation", true );
-    BoolVar s_bDebugDraw( "Application/Physics/Debug Draw", true );
+    BoolVar s_bDebugDraw( "Application/Physics/Debug Draw", false );
 
     // bullet needs to define BT_THREADSAFE and (BT_USE_OPENMP || BT_USE_PPL || BT_USE_TBB)
     const bool bMultithreadCapable = true;
