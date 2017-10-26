@@ -16,6 +16,7 @@
 #include "TextureManager.h"
 #include "PhysicsPrimitive.h"
 #include "PrimitiveBatch.h"
+#include <ppl.h>
 
 #ifndef _DEBUG
 #define LARGESCALE_BENCHMARK 1
@@ -137,6 +138,12 @@ void BasicExample::Cleanup( void )
     Physics::Shutdown();
 }
 
+template <typename Func>
+void parallelFor( size_t Begin, size_t End, Func func)
+{
+    concurrency::parallel_for( Begin, End, func );
+}
+
 void BasicExample::Update( float deltaT )
 {
     ScopedTimer _prof( L"Bullet Update" );
@@ -171,6 +178,12 @@ void BasicExample::Update( float deltaT )
             uRigidNum++;
         }
         Physics::Update( deltaT );
+        {
+            ScopedTimer _( L"Update2" );
+            parallelFor( size_t(0), m_Models.size(), [&](size_t i) {
+                m_Models[i]->UpdateTransform();
+            } );
+        }
     }
 
     m_CameraController->Update( deltaT );

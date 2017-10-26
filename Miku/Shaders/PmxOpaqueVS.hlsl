@@ -62,7 +62,7 @@ PixelShaderInput main(AttributeInput input, float3 position : POSITION)
 	float4 posV = mul( modelview, float4(pos, 1.0) );
 	output.posV = posV.xyz;
 	output.posH = mul( projection, posV );
-	output.normalV = mul( (float3x3)modelview, normal );
+    output.normalV = mul( (float3x3)modelview, normal );
 	output.uv = input.uv;
     GetShadowData( pos, output.shadowPosH );
 
