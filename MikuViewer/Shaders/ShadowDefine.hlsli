@@ -20,4 +20,4 @@
 #define ShadowModeFixedSizePCF_ 6
 
 // Shadow filter method
-#define ShadowMode_ ShadowModeOptimizedGaussinPCF_
+#define ShadowMode_ ShadowModeSingle_

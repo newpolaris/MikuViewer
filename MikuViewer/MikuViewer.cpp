@@ -103,9 +103,8 @@ private:
     void RenderShadowMap(GraphicsContext& gfxContext);
     BaseCamera* SelectedCamera();
 
-	MikuCamera m_Camera;
     Camera m_SecondCamera;
-	MikuCameraController* m_pCameraController;
+	CameraController* m_pCameraController;
 	CameraController* m_pSecondCameraController;
 
     Matrix4 m_ViewMatrix;
@@ -143,7 +142,7 @@ NumVar m_Frame( "Application/Animation/Frame", 0, 0, 1e5, 1 );
 enum { kCameraMain, kCameraVirtual };
 const char* CameraNames[] = { "CameraMain", "CameraVirtual" };
 EnumVar m_CameraType("Application/Camera/Camera Type", kCameraVirtual, kCameraVirtual+1, CameraNames );
-BoolVar m_bDebugTexture("Application/Camera/Debug Texture", false);
+BoolVar m_bDebugTexture("Application/Camera/Debug Texture", true);
 BoolVar m_bViewSplit("Application/Camera/View Split", false);
 BoolVar m_bShadowSplit("Application/Camera/Shadow Split", false);
 BoolVar m_bFixDepth("Application/Camera/Fix Depth", false);
@@ -152,9 +151,9 @@ BoolVar m_bStabilizeCascades("Application/Camera/Stabilize Cascades", false);
 
 ExpVar m_SunLightIntensity("Application/Lighting/Sun Light Intensity", 4.0f, 0.0f, 16.0f, 0.1f);
 ExpVar m_AmbientIntensity("Application/Lighting/Ambient Intensity", 0.1f, -16.0f, 16.0f, 0.1f);
-NumVar m_ShadowDimX("Application/Lighting/Shadow Dim X", 100, 10, 1000, 10 );
-NumVar m_ShadowDimY("Application/Lighting/Shadow Dim Y", 100, 10, 1000, 10 );
-NumVar m_ShadowDimZ("Application/Lighting/Shadow Dim Z", 100, 10, 1000, 10 );
+NumVar m_ShadowDimX("Application/Lighting/Shadow Dim X", 10, 1, 100, 1 );
+NumVar m_ShadowDimY("Application/Lighting/Shadow Dim Y", 10, 1, 100, 1 );
+NumVar m_ShadowDimZ("Application/Lighting/Shadow Dim Z", 10, 1, 100, 1 );
 
 NumVar m_SunDirX("Application/Lighting/Sun Dir X", -0.5f, -1.0f, 1.0f, 0.1f );
 NumVar m_SunDirY("Application/Lighting/Sun Dir Y", -1.0f, -1.0f, 1.0f, 0.1f );
@@ -239,7 +238,7 @@ void MikuViewer::Startup( void )
 
     // Depth-only but with a depth bias and/or render only backfaces
     m_ShadowPSO = m_DepthPSO;
-    m_ShadowPSO.SetRasterizerState( RasterizerShadow );
+    m_ShadowPSO.SetRasterizerState( RasterizerShadowCW );
     m_ShadowPSO.Finalize();
 
     // Shadows with alpha testing
@@ -251,7 +250,7 @@ void MikuViewer::Startup( void )
 	m_GroundPlanePSO = m_DepthPSO;
 	m_GroundPlanePSO.SetInputLayout( static_cast<UINT>(Graphics::GroundPlanInputDesc.size()), Graphics::GroundPlanInputDesc.data() );
 	m_GroundPlanePSO.SetBlendState( BlendDisable );
-	m_OpaquePSO.SetRasterizerState( RasterizerTwoSided );
+	m_GroundPlanePSO.SetRasterizerState( RasterizerTwoSided );
 	m_GroundPlanePSO.SetVertexShader( MY_SHADER_ARGS( g_pGroundPlaneVS) );
 	m_GroundPlanePSO.SetPixelShader( MY_SHADER_ARGS( g_pGroundPlanePS ) );
 	m_GroundPlanePSO.Finalize();
@@ -268,7 +267,7 @@ void MikuViewer::Startup( void )
 	m_BlendPSO.SetBlendState( BlendTraditional );
 	m_BlendPSO.Finalize();
 
-	m_pCameraController = new MikuCameraController(m_Camera, Vector3(kYUnitVector));
+	m_pCameraController = new CameraController(m_SunShadow, Vector3(kYUnitVector));
 	m_pSecondCameraController = new CameraController(m_SecondCamera, Vector3(kYUnitVector));
 
     m_ShadowViewProj.resize( kShadowSplit );
@@ -321,7 +320,7 @@ BaseCamera* MikuViewer::SelectedCamera()
     if (m_CameraType == kCameraVirtual)
         return &m_SecondCamera;
     else
-        return &m_Camera;
+        return &m_SunShadow;
 }
 
 void MikuViewer::Update( float deltaT )
@@ -358,10 +357,7 @@ void MikuViewer::Update( float deltaT )
     if (!EngineProfiling::IsPaused())
         m_Frame = m_Frame + deltaT * 30.f;
 
-    if (m_CameraType == kCameraMain)
-        m_pCameraController->Update( deltaT );
-    else
-        m_pSecondCameraController->Update( deltaT );
+    m_pSecondCameraController->Update( deltaT );
 
 	m_ViewMatrix = SelectedCamera()->GetViewMatrix();
     m_ProjMatrix = SelectedCamera()->GetProjMatrix();
@@ -475,6 +471,8 @@ Matrix4 MakeGlobalShadowMatrix(const BaseCamera& camera, Vector3 LightDirection)
     return Tex * lightCamera.GetViewProjMatrix();
 }
 
+BoolVar m_bShadowBound("Application/Camera/Shadow Bound", true);
+
 void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
 {
     ScopedTimer _prof( L"Render Shadow Map", gfxContext );
@@ -482,11 +480,59 @@ void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
     m_SunShadow.UpdateMatrix( m_SunDirection, Vector3(0.f), Vector3(m_ShadowDimX, m_ShadowDimY, m_ShadowDimZ),
         (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16 );
 
-    Matrix4 lightView = m_SunShadow.GetViewMatrix();
-    BoundingBox bound = GetBoundingBox();
-    FrustumCorner boundFrustum = bound.GetCorners();
-    for ( auto i = 0; i < boundFrustum.size(); i++ )
-        boundFrustum[i] = Vector3(lightView * boundFrustum[i]);
+    Vector3 minVec( FLT_MAX ), maxVec( FLT_MIN );
+    if (m_bShadowBound)
+    {
+        BoundingBox bound = GetBoundingBox();
+        for (auto& model : m_Models)
+        {
+            auto bound = model->GetBoundingBox();
+            minVec = Min(bound.GetMin(), minVec);
+            maxVec = Max(bound.GetMax(), maxVec);
+        }
+        m_ShadowDimX = maxVec.GetX(), m_ShadowDimY = maxVec.GetY(), m_ShadowDimZ = maxVec.GetZ();
+    }
+    else
+    {
+        minVec = -Vector3( m_ShadowDimX, m_ShadowDimY, m_ShadowDimZ );
+        maxVec = -minVec;
+    }
+
+    // caster and reciver use same sized box
+    BoundingBox frustumAABB( minVec, maxVec );
+    BoundingBox casterAABB( minVec, maxVec );
+    Vector3 m_lightDir = Normalize(-m_SunDirection);
+    Vector3 eyeLightDir = m_ViewMatrix.Get3x3() * m_lightDir;
+
+    frustumAABB = m_ViewMatrix * frustumAABB;
+    casterAABB = m_ViewMatrix * casterAABB;
+
+    //  light pt is "infinitely" far away from the view frustum.
+    //  however, all that's really needed is to place it just outside of all shadow casters
+    Vector3 frustumCenter = frustumAABB.GetCenter();
+    float t;
+    casterAABB.Intersect( &t, frustumCenter, eyeLightDir );
+
+    Vector3 lightPt = frustumCenter + 2.f*t*eyeLightDir;
+    const Vector3 yAxis(0.f, 1.f, 0.f);
+    const Vector3 zAxis(0.f, 0.f, 1.f);
+    Vector3 axis;
+    if (fabsf( Dot( eyeLightDir, yAxis ) ) > 0.99f)
+        axis = zAxis;
+    else
+        axis = yAxis;
+
+    Matrix4 lightView = Matrix4(XMMatrixLookAtLH( lightPt, frustumCenter, axis ));
+    frustumAABB = lightView * frustumAABB;
+    casterAABB = lightView * casterAABB;
+
+    //  use a small fudge factor for the near plane, to avoid some minor clipping artifacts
+    Matrix4 lightProj = Matrix4( DirectX::XMMatrixOrthographicOffCenterLH(
+        frustumAABB.m_Min.GetX(), frustumAABB.m_Max.GetX(),
+        frustumAABB.m_Min.GetY(), frustumAABB.m_Max.GetY(),
+        casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
+    lightView = lightView * m_ViewMatrix;
+    m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
 
 #if 0
     OrthographicCamera shadowCamera;
@@ -518,7 +564,7 @@ void MikuViewer::RenderScene( void )
         float ShadowTexelSize[4];
     } psConstants;
 
-    psConstants.LightDirection = m_Camera.GetViewMatrix().Get3x3() * m_SunDirection;
+    psConstants.LightDirection = m_SecondCamera.GetViewMatrix().Get3x3() * m_SunDirection;
     psConstants.LightColor = m_SunColor / Vector3( 255.f, 255.f, 255.f );
     psConstants.ShadowTexelSize[0] = 1.0f / g_ShadowBuffer.GetWidth();
     psConstants.ShadowTexelSize[1] = 1.0f / g_ShadowBuffer.GetHeight();

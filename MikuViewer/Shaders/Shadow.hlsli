@@ -473,11 +473,11 @@ float3 GetShadow( float4 ShadowPosH, float3 PosH )
     float2 TransTexCoord = ShadowPos.xy;
     if (!any( saturate( TransTexCoord ) != TransTexCoord ))
     {
-        uint cascadeIdx = 0;
-
+        ShadowPos = saturate( ShadowPos );
         float3 shadowPosDX = ddx_fine( ShadowPos );
         float3 shadowPosDY = ddy_fine( ShadowPos );
 
+        uint cascadeIdx = 0;
 #if ShadowMode_ == ShadowModeSingle_
         Result = SampleSingle( ShadowPos, cascadeIdx );
 #elif ShadowMode_ == ShadowModeWeighted_
