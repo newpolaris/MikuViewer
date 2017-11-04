@@ -193,7 +193,7 @@ void MikuViewer::Startup( void )
         XMFLOAT3 Position;
     };
 
-    auto motionPath = L"Models/nekomimi_lat.vmd";
+    auto motionPath = L"";
     std::vector<ModelInit> list = {
         { L"Models/Lat0.pmd", motionPath, XMFLOAT3( -10.f, 0.f, 0.f ) },
 #ifndef _DEBUG
@@ -217,9 +217,6 @@ void MikuViewer::Startup( void )
 #ifdef _DEBUG
     m_Models.emplace_back( std::make_shared<Graphics::GroundPlane>() );
 #endif
-
-	const std::wstring cameraPath = L"Models/camera.vmd";
-	m_Motion.LoadMotion( cameraPath );
 
 	// Depth-only (2x rate)
 	m_DepthPSO.SetRasterizerState( RasterizerDefault );
@@ -355,11 +352,6 @@ void MikuViewer::Update( float deltaT )
     if (!EngineProfiling::IsPaused())
         m_Frame = m_Frame + deltaT * 30.f;
 
-    for (auto& model : m_Models)
-        model->Update( m_Frame );
-	m_Motion.Update( m_Frame );
-
-    m_Motion.Animate( m_Camera );
     if (m_CameraType == kCameraMain)
         m_pCameraController->Update( deltaT );
     else
