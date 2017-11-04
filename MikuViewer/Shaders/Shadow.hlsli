@@ -456,7 +456,7 @@ float SampleShadowMapFixedSizePCF(float3 shadowPos, float3 shadowPosDX, float3 s
     #endif
 }
 
-float3 GetShadow( float4 ShadowPosH[MaxSplit], float3 PosH )
+float3 GetShadow( float4 ShadowPosH, float3 PosH )
 {
     float Result = 1.f;
 
@@ -467,46 +467,35 @@ float3 GetShadow( float4 ShadowPosH[MaxSplit], float3 PosH )
     texShadow.GetDimensions(texShadowSize.x, texShadowSize.y, numSlices);
     float2 ShadowTexelSize = 1.0 / texShadowSize;
 
-    [unroll]
-    for ( uint i = 0; i < MaxSplit; i++ )
+    // Complete projection by doing division by w.
+    float3 ShadowPos = ShadowPosH.xyz / ShadowPosH.w;
+
+    float2 TransTexCoord = ShadowPos.xy;
+    if (!any( saturate( TransTexCoord ) != TransTexCoord ))
     {
-        // Complete projection by doing division by w.
-        float3 ShadowPos = ShadowPosH[i].xyz / ShadowPosH[i].w;
+        uint cascadeIdx = 0;
 
-        float2 TransTexCoord = ShadowPos.xy;
-        if (!any( saturate( TransTexCoord ) != TransTexCoord ))
-        {
-            uint cascadeIdx = i;
-            if (i == 0)
-                CascadeIndicator = float3( 0.1, 0.0, 0.0 );
-            else if (i == 1)
-                CascadeIndicator = float3( 0.0, 0.1, 0.0 );
-            else if (i == 2)
-                CascadeIndicator = float3( 0.0, 0.0, 0.1 );
-
-            float3 shadowPosDX = ddx_fine( ShadowPos );
-            float3 shadowPosDY = ddy_fine( ShadowPos );
+        float3 shadowPosDX = ddx_fine( ShadowPos );
+        float3 shadowPosDY = ddy_fine( ShadowPos );
 
 #if ShadowMode_ == ShadowModeSingle_
-            Result = SampleSingle( ShadowPos, cascadeIdx );
+        Result = SampleSingle( ShadowPos, cascadeIdx );
 #elif ShadowMode_ == ShadowModeWeighted_
-            Result = SampleWeighted( ShadowPos, cascadeIdx );
+        Result = SampleWeighted( ShadowPos, cascadeIdx );
 #elif ShadowMode_ == ShadowModePoisson_
-            Result = SamplePoissonDisk( ShadowPos, cascadeIdx );
+        Result = SamplePoissonDisk( ShadowPos, cascadeIdx );
 #elif ShadowMode_ == ShadowModePoissonRotated_
-            Result = SamplePoissonDiskRotated( ShadowPos, ShadowTexelSize, PosH, cascadeIdx );
+        Result = SamplePoissonDiskRotated( ShadowPos, ShadowTexelSize, PosH, cascadeIdx );
 #elif ShadowMode_ == ShadowModeOptimizedGaussinPCF_
-            Result = SampletexShadowOptimizedGaussinPCF( ShadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
+        Result = SampletexShadowOptimizedGaussinPCF( ShadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
 #elif ShadowMode_ == ShadowModePoissonStratified_
-            Result = ShadowModePoissonDiskStratified( ShadowPos, ShadowTexelSize, PosH, cascadeIdx );
+        Result = ShadowModePoissonDiskStratified( ShadowPos, ShadowTexelSize, PosH, cascadeIdx );
 #elif ShadowMode_ == ShadowModeFixedSizePCF_
-            Result = SampleShadowMapFixedSizePCF( Input, ShadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
+        Result = SampleShadowMapFixedSizePCF( Input, ShadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
 #elif ShadowMode_ == ShadowModeGridPCF_
-            Result = SampleShadowMapGridPCF( shadowPosition, shadowPosDX, shadowPosDY, cascadeIdx );
+        Result = SampleShadowMapGridPCF( shadowPosition, shadowPosDX, shadowPosDY, cascadeIdx );
 #endif
-            CascadeIndicator = CascadeIndicator * Result;
-            break;
-        }
+        CascadeIndicator = CascadeIndicator * Result;
     }
 
 #if 1

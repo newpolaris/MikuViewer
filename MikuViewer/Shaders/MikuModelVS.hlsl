@@ -1,12 +1,10 @@
 #include "Skinning.hlsli"
 
-static const uint MaxSplit = 4;
-
 cbuffer VSConstants : register(b0)
 {
 	matrix view;
 	matrix projection;
-    matrix shadow[MaxSplit]; // T*P*V
+    matrix shadow; // T*P*V
 };
 
 cbuffer SkinningConstants : register(b1)
@@ -34,19 +32,10 @@ struct PixelShaderInput
 {
 	float4 posH : SV_POSITION;
 	float3 posV : POSITION0;
-    float4 shadowPosH[MaxSplit] : POSITION1;
+    float4 shadowPosH : POSITION1;
 	float3 normalV : NORMAL;
 	float2 uv : TEXTURE;
 };
-
-void GetShadowData( float3 position, out float4 shadowPosH[MaxSplit] )
-{
-    for ( uint i = 0; i < MaxSplit; i++ )
-    {
-        matrix shadowTransform = mul( shadow[i], model );
-        shadowPosH[i] = mul( shadowTransform, float4(position, 1.0) );
-    }
-}
 
 // Simple shader to do vertex processing on the GPU.
 PixelShaderInput main(AttributeInput input, float3 position : POSITION)
@@ -60,11 +49,11 @@ PixelShaderInput main(AttributeInput input, float3 position : POSITION)
     // Transform the vertex position into projected space.
 	matrix modelview = mul( view, model );
 	float4 posV = mul( modelview, float4(pos, 1.0) );
-	output.posV = posV.xyz; 
+	output.posV = posV.xyz;
 	output.posH = mul( projection, posV );
 	output.normalV = mul( (float3x3)modelview, normal );
 	output.uv = input.uv;
-    GetShadowData( pos, output.shadowPosH );
+    output.shadowPosH = mul( mul( shadow, model ), float4(pos, 1.0) );
 
 	return output;
 }

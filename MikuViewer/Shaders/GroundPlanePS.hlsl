@@ -3,7 +3,7 @@
 struct PixelShaderInput
 {
 	float4 posH : SV_POSITION;
-    float4 shadowPosH[MaxSplit] : POSITION0;
+    float4 shadowPosH : POSITION0;
 };
 
 cbuffer PassConstants : register(b1)

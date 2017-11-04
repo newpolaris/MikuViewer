@@ -149,8 +149,8 @@ namespace Math
         }
         else
         {
-            Q1 = 1 / (NearClip - FarClip);
-            Q2 = Q1 * NearClip;
+            Q1 = 1 / (FarClip - NearClip);
+            Q2 = - Q1 * NearClip;
         }
 
         return Matrix4(
@@ -176,8 +176,8 @@ namespace Math
         }
         else
         {
-            Q1 = 1 / (NearClip - FarClip);
-            Q2 = Q1 * NearClip;
+            Q1 = 1 / (FarClip - NearClip);
+            Q2 = - Q1 * NearClip;
         }
 
         return Matrix4(
