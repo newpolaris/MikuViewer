@@ -151,7 +151,7 @@ namespace Math
 	inline void BaseCamera::SetTransform( const AffineTransform& xform )
 	{
 		// By using these functions, we rederive an orthogonal transform.
-		SetLookDirection(-xform.GetZ(), xform.GetY());
+		SetLookDirection(xform.GetZ(), xform.GetY());
 		SetPosition(xform.GetTranslation());
 	}
 

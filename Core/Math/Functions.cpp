@@ -124,14 +124,14 @@ namespace Math
         }
         else
         {
-            Q1 = FarClip / (NearClip - FarClip);
-            Q2 = Q1 * NearClip;
+            Q1 = FarClip / (FarClip - NearClip);
+            Q2 = - Q1 * NearClip;
         }
 
         return Matrix4(
             Vector4( X, 0.0f, 0.0f, 0.0f ),
             Vector4( 0.0f, Y, 0.0f, 0.0f ),
-            Vector4( 0.0f, 0.0f, Q1, -1.0f ),
+            Vector4( 0.0f, 0.0f, Q1, 1.0f ),
             Vector4( 0.0f, 0.0f, Q2, 0.0f )
         );
     }

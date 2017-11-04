@@ -101,10 +101,10 @@ private:
     void RenderObjects( GraphicsContext& gfxContext, const Matrix4 & ViewMat, const Matrix4 & ProjMat, eObjectFilter Filter );
     void RenderLightShadows(GraphicsContext& gfxContext);
     void RenderShadowMap(GraphicsContext& gfxContext);
-    MikuCamera* SelectedCamera();
+    BaseCamera* SelectedCamera();
 
 	MikuCamera m_Camera;
-    MikuCamera m_SecondCamera;
+    Camera m_SecondCamera;
 	MikuCameraController* m_pCameraController;
 	CameraController* m_pSecondCameraController;
 
@@ -142,7 +142,7 @@ NumVar m_Frame( "Application/Animation/Frame", 0, 0, 1e5, 1 );
 
 enum { kCameraMain, kCameraVirtual };
 const char* CameraNames[] = { "CameraMain", "CameraVirtual" };
-EnumVar m_CameraType("Application/Camera/Camera Type", kCameraMain, kCameraVirtual+1, CameraNames );
+EnumVar m_CameraType("Application/Camera/Camera Type", kCameraVirtual, kCameraVirtual+1, CameraNames );
 BoolVar m_bDebugTexture("Application/Camera/Debug Texture", false);
 BoolVar m_bViewSplit("Application/Camera/View Split", false);
 BoolVar m_bShadowSplit("Application/Camera/Shadow Split", false);
@@ -186,6 +186,11 @@ void MikuViewer::Startup( void )
 
     MikuModel::Initialize();
 
+    const Vector3 eye = Vector3(0.0f, 20.0f, -20.0f);
+    m_SecondCamera.SetEyeAtUp( eye, Vector3(0.0, 20.f, 0.f), Vector3(kYUnitVector) );
+    m_SecondCamera.SetPerspectiveMatrix( XM_PIDIV4, 9.0f/16.0f, 1.0f, 20000.0f );
+    m_SecondCamera.Update();
+
     struct ModelInit
     {
         std::wstring Model;
@@ -195,7 +200,7 @@ void MikuViewer::Startup( void )
 
     auto motionPath = L"";
     std::vector<ModelInit> list = {
-        { L"Models/Lat0.pmd", motionPath, XMFLOAT3( -10.f, 0.f, 0.f ) },
+        { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
 #ifndef _DEBUG
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
@@ -207,7 +212,7 @@ void MikuViewer::Startup( void )
 
     for (auto l : list)
     {
-        auto model = std::make_shared<Graphics::MikuModel>();
+        auto model = std::make_shared<Graphics::MikuModel>(false);
         model->SetModel( l.Model );
         model->SetMotion( l.Motion );
         model->SetPosition( l.Position );
@@ -253,12 +258,13 @@ void MikuViewer::Startup( void )
 
 	m_OpaquePSO = m_DepthPSO;
 	m_OpaquePSO.SetBlendState( BlendDisable );
+	m_OpaquePSO.SetRasterizerState( RasterizerDefaultCW );
 	m_OpaquePSO.SetVertexShader( MY_SHADER_ARGS( g_pMikuModelVS ) );
 	m_OpaquePSO.SetPixelShader( MY_SHADER_ARGS( g_pMikuModelPS ) );
 	m_OpaquePSO.Finalize();
 
 	m_BlendPSO = m_OpaquePSO;
-	m_BlendPSO.SetRasterizerState( RasterizerDefault );
+	m_BlendPSO.SetRasterizerState( RasterizerDefaultCW );
 	m_BlendPSO.SetBlendState( BlendTraditional );
 	m_BlendPSO.Finalize();
 
@@ -310,7 +316,7 @@ namespace GameCore
 #endif
 }
 
-MikuCamera* MikuViewer::SelectedCamera()
+BaseCamera* MikuViewer::SelectedCamera()
 {
     if (m_CameraType == kCameraVirtual)
         return &m_SecondCamera;
@@ -358,7 +364,7 @@ void MikuViewer::Update( float deltaT )
         m_pSecondCameraController->Update( deltaT );
 
 	m_ViewMatrix = SelectedCamera()->GetViewMatrix();
-	m_ProjMatrix = SelectedCamera()->GetProjMatrix();
+    m_ProjMatrix = SelectedCamera()->GetProjMatrix();
 
     m_SunDirection = Vector3( m_SunDirX, m_SunDirY, m_SunDirZ );
     m_SunColor = Vector3( m_SunColorR, m_SunColorG, m_SunColorB );
@@ -622,8 +628,8 @@ void MikuViewer::RenderScene( void )
     D3D11_SAMPLER_HANDLE Sampler[] = { SamplerLinearWrap, SamplerLinearClamp, SamplerShadow };
     gfxContext.SetDynamicSamplers( 0, _countof(Sampler), Sampler, { kBindPixel } );
 
-    RenderLightShadows(gfxContext);
-    RenderShadowMap(gfxContext);
+    // RenderLightShadows(gfxContext);
+    // RenderShadowMap(gfxContext);
 
 	gfxContext.SetDynamicConstantBufferView( 1, sizeof(psConstants), &psConstants, { kBindPixel } );
 

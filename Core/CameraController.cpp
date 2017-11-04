@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #include "pch.h"
@@ -22,8 +22,8 @@ using namespace GameCore;
 CameraController::CameraController( BaseCamera& camera, Vector3 worldUp ) : m_TargetCamera( camera )
 {
 	m_WorldUp = Normalize(worldUp);
-	m_WorldNorth = Normalize(Cross(m_WorldUp, Vector3(kXUnitVector)));
-	m_WorldEast = Cross(m_WorldNorth, m_WorldUp);
+	m_WorldNorth = Normalize(Cross(Vector3(kXUnitVector), m_WorldUp));
+	m_WorldEast = Cross(m_WorldUp, m_WorldNorth);
 
 	m_HorizontalLookSensitivity = 2.0f;
 	m_VerticalLookSensitivity = 2.0f;
@@ -34,7 +34,7 @@ CameraController::CameraController( BaseCamera& camera, Vector3 worldUp ) : m_Ta
 
 	m_CurrentPitch = Sin(Dot(camera.GetForwardVec(), m_WorldUp));
 
-	Vector3 forward = Normalize(Cross(m_WorldUp, camera.GetRightVec()));
+	Vector3 forward = Normalize(Cross(camera.GetRightVec(), m_WorldUp));
 	m_CurrentHeading = ATan2(-Dot(forward, m_WorldEast), Dot(forward, m_WorldNorth));
 
 	m_FineMovement = false;
@@ -108,10 +108,10 @@ void CameraController::Update( float deltaTime )
 	if (m_CurrentHeading > XM_PI)
 		m_CurrentHeading -= XM_2PI;
 	else if (m_CurrentHeading <= -XM_PI)
-		m_CurrentHeading += XM_2PI; 
+		m_CurrentHeading += XM_2PI;
 
-	Matrix3 orientation = Matrix3(m_WorldEast, m_WorldUp, -m_WorldNorth) * Matrix3::MakeYRotation( m_CurrentHeading ) * Matrix3::MakeXRotation( m_CurrentPitch );
-	Vector3 position = orientation * Vector3( strafe, ascent, -forward ) + m_TargetCamera.GetPosition();
+	Matrix3 orientation = Matrix3(m_WorldEast, m_WorldUp, m_WorldNorth) * Matrix3::MakeYRotation( -m_CurrentHeading ) * Matrix3::MakeXRotation( -m_CurrentPitch );
+	Vector3 position = orientation * Vector3( strafe, ascent, forward ) + m_TargetCamera.GetPosition();
 	m_TargetCamera.SetTransform( AffineTransform( orientation, position ) );
 	m_TargetCamera.Update();
 }

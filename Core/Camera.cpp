@@ -18,7 +18,7 @@
 using namespace Math;
 
 // #define ReverseZ_
-#ifdef ReverseZD_
+#ifdef ReverseZ_
 const bool Math::g_bReverseZ = true;
 const float Math::g_ClearDepth = 0.0f;
 #else
@@ -26,28 +26,21 @@ const bool Math::g_ReverseZ = false;
 const float Math::g_ClearDepth = 1.0f;
 #endif
 
-//
-// 'forward' is inverse look direction (right hand coord)
-// So in cross calcuration to calc right and up vector
-// Element order is chaged to correct equation
-//
-void BaseCamera::SetLookDirection( Vector3 forward, Vector3 up )
+void BaseCamera::SetLookDirection( Vector3 look, Vector3 up )
 {
 	// Given, but ensure normalization
-	Scalar forwardLenSq = LengthSquare(forward);
-	forward = Select(forward * RecipSqrt(forwardLenSq), -Vector3(kZUnitVector), forwardLenSq < Scalar(0.000001f));
+	Scalar lookLenSq = LengthSquare(look);
+	look = Select(look * RecipSqrt(lookLenSq), -Vector3(kZUnitVector), lookLenSq < Scalar(0.000001f));
 
-	// Deduce a valid, orthogonal right vector
-
-	Vector3 right = Cross(forward, up); // forward = -look
-	Scalar rightLenSq = LengthSquare(right);
-	right = Select(right * RecipSqrt(rightLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * forward, rightLenSq < Scalar(0.000001f));
+	Vector3 left = Cross(look, up); // forward == look
+	Scalar leftLenSq = LengthSquare(left);
+	left = Select(left * RecipSqrt(leftLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * look, leftLenSq < Scalar(0.000001f));
 
 	// Compute actual up vector
-	up = Cross(right, forward); // forward = -look
+	up = Cross(left, look);
 
 	// Finish constructing basis
-	m_Basis = Matrix3(right, up, -forward); // -forward = look
+	m_Basis = Matrix3(-left, up, look);
 	m_CameraToWorld.SetRotation(Quaternion(m_Basis));
 }
 
