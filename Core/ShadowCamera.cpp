@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #include "pch.h"
@@ -79,3 +79,15 @@ void ShadowCamera::UpdateMatrix(
     m_ShadowMatrix = Matrix4( AffineTransform( Matrix3::MakeScale( 0.5f, -0.5f, 1.0f ), Vector3(0.5f, 0.5f, 0.0f) ) ) * m_ViewProjMatrix;
 }
 
+void ShadowCamera::SetViewProjectMatrix( const Matrix4& View, const Matrix4& Projection )
+{
+    m_ViewMatrix = View;
+    m_ProjMatrix = Projection;
+    m_ViewProjMatrix = Projection * View;
+    //  build the composite matrix that transforms from world space into post-projective light space
+    m_ShadowMatrix = m_ViewProjMatrix;
+
+    m_ClipToWorld = Invert(m_ViewProjMatrix);
+	m_FrustumVS = Frustum( m_ProjMatrix );
+	m_FrustumWS = m_CameraToWorld * m_FrustumVS;
+}
