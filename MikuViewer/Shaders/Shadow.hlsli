@@ -499,6 +499,7 @@ float3 GetShadow( float4 ShadowPosH, float3 PosH )
     }
 
 #if 1
+    return Result;
     return Result * Result * 0.5 + 0.5;
 #else
     return CascadeIndicator;// Result * Result * 0.5 + 0.5;

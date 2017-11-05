@@ -198,7 +198,9 @@ void MikuViewer::Startup( void )
 
     auto motionPath = L"";
     std::vector<ModelInit> list = {
-        { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
+        // { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
+        { L"Models/GUMIβ版修正.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
+        // { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
 #ifndef _DEBUG
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
@@ -499,8 +501,6 @@ void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
     BoundingBox frustumAABB( minVec, maxVec );
     BoundingBox casterAABB( minVec, maxVec );
     Vector3 m_lightDir = Normalize(-m_SunDirection);
-
-#if 0
     Vector3 eyeLightDir = m_ViewMatrix.Get3x3() * m_lightDir;
 
     frustumAABB = m_ViewMatrix * frustumAABB;
@@ -532,26 +532,6 @@ void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
         casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
     lightView = lightView * m_ViewMatrix;
     m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
-#else
-    Vector3 frustumCenter = frustumAABB.GetCenter();
-    float t;
-    Vector3 eyeLightDir = m_lightDir;
-    casterAABB.Intersect( &t, frustumCenter, eyeLightDir );
-    Scalar radius = Length( maxVec - minVec );
-    Vector3 lightPt = frustumCenter + 2.f * 50 * eyeLightDir;
-
-    if (0)
-    {
-        m_SunShadow.UpdateMatrix( m_SunDirection, Vector3( 0.f ), Vector3( m_ShadowDimX, m_ShadowDimY, m_ShadowDimZ ), (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16 );
-    }
-    else
-    {
-        Matrix4 lightView = Matrix4( DirectX::XMMatrixLookAtLH( eyeLightDir, frustumCenter, Vector3( kYUnitVector ) ) );
-        // Matrix4 lightProj = Matrix4( DirectX::XMMatrixOrthographicOffCenterLH( frustumAABB.m_Min.GetX(), frustumAABB.m_Max.GetX(), frustumAABB.m_Min.GetY(), frustumAABB.m_Max.GetY(), casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
-        Matrix4 lightProj = OrthographicMatrix( minVec.GetX(), maxVec.GetX(), minVec.GetY(), maxVec.GetY(), minVec.GetZ(), maxVec.GetZ(), false );
-        m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
-    }
-#endif
 
     g_ShadowBuffer.BeginRendering( gfxContext );
     gfxContext.SetPipelineState( m_ShadowPSO );

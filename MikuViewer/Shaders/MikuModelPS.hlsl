@@ -92,6 +92,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
 
 	float3 color = texColor * (ambient + diffuse) + specular;
     float3 shadow = GetShadow( input.shadowPosH, input.posH.xyz );
+    // return float4(shadow, 1);
 #if 1
 	if (bUseToon)
         color *= texToon.Sample( sampler0, toonCoord );
