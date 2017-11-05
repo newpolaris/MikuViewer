@@ -471,14 +471,11 @@ Matrix4 MakeGlobalShadowMatrix(const BaseCamera& camera, Vector3 LightDirection)
     return Tex * lightCamera.GetViewProjMatrix();
 }
 
-BoolVar m_bShadowBound("Application/Camera/Shadow Bound", true);
+BoolVar m_bShadowBound("Application/Camera/Shadow Bound", false);
 
 void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
 {
     ScopedTimer _prof( L"Render Shadow Map", gfxContext );
-
-    m_SunShadow.UpdateMatrix( m_SunDirection, Vector3(0.f), Vector3(m_ShadowDimX, m_ShadowDimY, m_ShadowDimZ),
-        (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16 );
 
     Vector3 minVec( FLT_MAX ), maxVec( FLT_MIN );
     if (m_bShadowBound)
@@ -502,6 +499,8 @@ void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
     BoundingBox frustumAABB( minVec, maxVec );
     BoundingBox casterAABB( minVec, maxVec );
     Vector3 m_lightDir = Normalize(-m_SunDirection);
+
+#if 0
     Vector3 eyeLightDir = m_ViewMatrix.Get3x3() * m_lightDir;
 
     frustumAABB = m_ViewMatrix * frustumAABB;
@@ -533,12 +532,25 @@ void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
         casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
     lightView = lightView * m_ViewMatrix;
     m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
+#else
+    Vector3 frustumCenter = frustumAABB.GetCenter();
+    float t;
+    Vector3 eyeLightDir = m_lightDir;
+    casterAABB.Intersect( &t, frustumCenter, eyeLightDir );
+    Scalar radius = Length( maxVec - minVec );
+    Vector3 lightPt = frustumCenter + 2.f * 50 * eyeLightDir;
 
-#if 0
-    OrthographicCamera shadowCamera;
-    shadowCamera.SetOrthographic( minExtents.GetX(), maxExtents.GetX(), minExtents.GetY(), maxExtents.GetY(), minExtents.GetZ(), maxExtents.GetZ() );
-    shadowCamera.SetEyeAtUp( Vector3( 0.f ), m_SunDirection, Vector3( kYUnitVector ) );
-    shadowCamera.Update();
+    if (0)
+    {
+        m_SunShadow.UpdateMatrix( m_SunDirection, Vector3( 0.f ), Vector3( m_ShadowDimX, m_ShadowDimY, m_ShadowDimZ ), (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16 );
+    }
+    else
+    {
+        Matrix4 lightView = Matrix4( DirectX::XMMatrixLookAtLH( eyeLightDir, frustumCenter, Vector3( kYUnitVector ) ) );
+        // Matrix4 lightProj = Matrix4( DirectX::XMMatrixOrthographicOffCenterLH( frustumAABB.m_Min.GetX(), frustumAABB.m_Max.GetX(), frustumAABB.m_Min.GetY(), frustumAABB.m_Max.GetY(), casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
+        Matrix4 lightProj = OrthographicMatrix( minVec.GetX(), maxVec.GetX(), minVec.GetY(), maxVec.GetY(), minVec.GetZ(), maxVec.GetZ(), false );
+        m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
+    }
 #endif
 
     g_ShadowBuffer.BeginRendering( gfxContext );
