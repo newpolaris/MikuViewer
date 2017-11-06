@@ -46,7 +46,7 @@ SamplerState sampler0 : register(s0);
 SamplerState sampler1 : register(s1);
 SamplerComparisonState samplerShadow : register(s2);
 
-#define UsePlaneDepthBias_ 1
+// #define UsePlaneDepthBias_ 1
 static const float Bias = 0.f;
 #include "Shadow.hlsli"
 

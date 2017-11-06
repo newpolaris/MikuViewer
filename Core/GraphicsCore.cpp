@@ -562,8 +562,8 @@ void Graphics::Initialize( void )
 	// Shadows need their own rasterizer state so we can reverse the winding of faces
 	RasterizerShadow = RasterizerDefault;
 	RasterizerShadow.CullMode = D3D11_CULL_FRONT;  // Hacked here rather than fixing the content
-	RasterizerShadow.SlopeScaledDepthBias = Math::g_ReverseZ ? -0.0f : 0.0f;
-	RasterizerShadow.DepthBias = Math::g_ReverseZ ? -0 : 0;
+	RasterizerShadow.SlopeScaledDepthBias = Math::g_ReverseZ ? -3.0f : 3.0f;
+	RasterizerShadow.DepthBias = Math::g_ReverseZ ? -1000 : 1000;
 
 	RasterizerShadowTwoSided = RasterizerShadow;
 	RasterizerShadowTwoSided.CullMode = D3D11_CULL_NONE;
