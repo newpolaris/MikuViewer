@@ -116,6 +116,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Clipping.cpp" />
     <ClCompile Include="MikuViewer.cpp" />
     <ClCompile Include="Shadow.cpp" />
   </ItemGroup>
@@ -168,6 +169,7 @@
     <None Include="Shaders\Skinning.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Clipping.h" />
     <ClInclude Include="Shaders\ShadowDefine.hlsli" />
     <ClInclude Include="Shadow.h" />
   </ItemGroup>

@@ -4,11 +4,13 @@
 
 #include <array>
 #include <vector>
+#include "BoundingPlane.h"
 #include "VectorMath.h"
 
 namespace Math
 {
     using FrustumCorner = std::array<Vector3, 8>;
+    using FrustumPlanes = std::array<BoundingPlane, 6>;
 
     class BoundingBox
     {
@@ -31,6 +33,7 @@ namespace Math
         const Vector3& GetMin( void ) const;
         const Vector3& GetMax( void ) const;
         FrustumCorner GetCorners( void ) const;
+        FrustumPlanes GetPlanes( void ) const;
 
         void Merge( const Vector3& vec );
         bool Intersect( float* hitDist, const Vector3& origPt, const Vector3& dir );

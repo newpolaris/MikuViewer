@@ -31,6 +31,7 @@ namespace Math
 		INLINE operator Vector4() const { return m_repr; }
 
 		Vector3 GetNormal( void ) const { return Vector3(m_repr); }
+        Scalar GetDistance( void ) const { return m_repr.GetW(); }
 
 		Scalar DistanceFromPoint( Vector3 point ) const
 		{
