@@ -142,6 +142,15 @@ float SampletexShadow( float2 base_uv, float u, float v, float2 texShadowSizeInv
     return texShadow.SampleCmpLevelZero(samplerShadow, float3(uv, cascadeIdx), z);
 }
 
+float2 ComputeReceiverPlaneDepthBias(float3 texCoordDX, float3 texCoordDY)
+{
+    float2 biasUV;
+    biasUV.x = texCoordDY.y * texCoordDX.z - texCoordDX.y * texCoordDY.z;
+    biasUV.y = texCoordDX.x * texCoordDY.z - texCoordDY.x * texCoordDX.z;
+    biasUV *= 1.0f / ((texCoordDX.x * texCoordDY.y) - (texCoordDX.y * texCoordDY.x));
+    return biasUV;
+}
+
 //
 // The method used in The Witness
 //
@@ -499,8 +508,8 @@ float3 GetShadow( float4 ShadowPosH, float3 PosH )
     }
 
 #if 1
-    return Result;
     return Result * Result * 0.5 + 0.5;
+    return Result;
 #else
     return CascadeIndicator;// Result * Result * 0.5 + 0.5;
 #endif

@@ -23,7 +23,6 @@
 #include "DebugHelper.h"
 #include "MikuModel.h"
 #include "GroundPlane.h"
-#include "Shadow.h"
 
 #include "Math/BoundingBox.h"
 #include "OrthographicCamera.h"
@@ -169,12 +168,6 @@ BoolVar EnableWaveOps("Application/Forward+/Enable Wave Ops", true);
 
 MikuViewer::MikuViewer() : m_pCameraController( nullptr ), m_pSecondCameraController( nullptr )
 {
-    float Sign = Math::g_ReverseZ ? -1.f : 1.f;
-    for (auto Desc : {&RasterizerShadow, &RasterizerShadowCW, &RasterizerShadowTwoSided})
-    {
-        Desc->SlopeScaledDepthBias = Sign * 2.0f;
-        Desc->DepthBias = static_cast<INT>(Sign * 0);
-    }
 }
 
 void MikuViewer::Startup( void )
@@ -198,7 +191,7 @@ void MikuViewer::Startup( void )
 
     auto motionPath = L"";
     std::vector<ModelInit> list = {
-        // { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
+        { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 10.f ) },
         { L"Models/GUMIβ版修正.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
         // { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
 #ifndef _DEBUG
@@ -240,7 +233,7 @@ void MikuViewer::Startup( void )
 
     // Depth-only but with a depth bias and/or render only backfaces
     m_ShadowPSO = m_DepthPSO;
-    m_ShadowPSO.SetRasterizerState( RasterizerShadowCW );
+    m_ShadowPSO.SetRasterizerState( RasterizerShadowTwoSided );
     m_ShadowPSO.Finalize();
 
     // Shadows with alpha testing
@@ -265,7 +258,6 @@ void MikuViewer::Startup( void )
 	m_OpaquePSO.Finalize();
 
 	m_BlendPSO = m_OpaquePSO;
-	m_BlendPSO.SetRasterizerState( RasterizerDefaultCW );
 	m_BlendPSO.SetBlendState( BlendTraditional );
 	m_BlendPSO.Finalize();
 
@@ -473,7 +465,7 @@ Matrix4 MakeGlobalShadowMatrix(const BaseCamera& camera, Vector3 LightDirection)
     return Tex * lightCamera.GetViewProjMatrix();
 }
 
-BoolVar m_bShadowBound("Application/Camera/Shadow Bound", false);
+BoolVar m_bShadowBound("Application/Camera/Shadow Bound", true);
 
 void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
 {
@@ -482,7 +474,6 @@ void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
     Vector3 minVec( FLT_MAX ), maxVec( FLT_MIN );
     if (m_bShadowBound)
     {
-        BoundingBox bound = GetBoundingBox();
         for (auto& model : m_Models)
         {
             auto bound = model->GetBoundingBox();
