@@ -241,6 +241,9 @@
     <ClInclude Include="OrthographicCamera.h">
       <Filter>Source Files\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Math\BoundingFrustum.h">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -400,6 +403,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Math\BoundingBox.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\BoundingFrustum.cpp">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
   </ItemGroup>

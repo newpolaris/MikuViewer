@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #include "pch.h"
@@ -112,4 +112,24 @@ Frustum::Frustum( const Matrix4& ProjMat )
 
 		ConstructPerspectiveFrustum( RcpXX, RcpYY, NearClip, FarClip );
 	}
+}
+
+bool Frustum::IntersectBox( BoundingBox box )
+{
+    bool intersect = false;
+    const Vector3 minpt = box.m_Min, maxpt = box.m_Max;
+    for (int i = 0; i < 6; i++)
+    {
+        Vector3 normal = m_FrustumPlanes[i].GetNormal();
+        bool vx = normal.GetX() < 0.f, vy = normal.GetY() < 0.f, vz = normal.GetZ() < 0.f;
+        // pVertex is diagonally opposed to nVertex
+        Vector3 nVertex( vx ? minpt.GetX() : maxpt.GetX(), vy ? minpt.GetY() : maxpt.GetY(), vz ? minpt.GetZ() : maxpt.GetZ() );
+        Vector3 pVertex( vx ? maxpt.GetX() : minpt.GetX(), vy ? maxpt.GetY() : minpt.GetY(), vz ? maxpt.GetY() : minpt.GetZ() );
+        const Vector3 zero( kZero );
+        if (XMVector3Less( DirectX::XMPlaneDotCoord( Vector4(m_FrustumPlanes[i]), nVertex ), zero))
+            return false;
+        if (XMVector3Less( DirectX::XMPlaneDotCoord( Vector4(m_FrustumPlanes[i]), pVertex ), zero))
+            intersect = true;
+    }
+    return true;
 }

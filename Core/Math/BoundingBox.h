@@ -29,7 +29,8 @@ namespace Math
                 Merge( vec );
         }
 
-        Vector3 GetCenter() const;
+        Vector3 GetCenter( void ) const;
+        Vector3 GetExtent( void ) const;
         const Vector3& GetMin( void ) const;
         const Vector3& GetMax( void ) const;
         FrustumCorner GetCorners( void ) const;
@@ -74,9 +75,14 @@ namespace Math
 		return m_Max;
 	}
 
-    inline Vector3 BoundingBox::GetCenter() const
+    inline Vector3 BoundingBox::GetCenter( void ) const
     {
         return (m_Min + m_Max) / 2;
+    }
+
+    inline Vector3 BoundingBox::GetExtent( void ) const
+    {
+        return (m_Max - m_Min) / 2;
     }
 
     inline BoundingBox operator* ( const OrthogonalTransform& xform, const BoundingBox& box )

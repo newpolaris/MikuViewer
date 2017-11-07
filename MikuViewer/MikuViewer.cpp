@@ -23,6 +23,7 @@
 #include "DebugHelper.h"
 #include "MikuModel.h"
 #include "GroundPlane.h"
+#include "Math/BoundingFrustum.h"
 
 #include "Math/BoundingBox.h"
 #include "OrthographicCamera.h"
@@ -96,6 +97,8 @@ public:
 private:
 
     BoundingBox GetBoundingBox();
+    void BuildOrthoShadowProjectionMatrix( void );
+    void BuildLSPSMProjectionMatrix( void );
     void RenderObjects( GraphicsContext& gfxContext, const Matrix4& ViewProjMat, eObjectFilter Filter );
     void RenderObjects( GraphicsContext& gfxContext, const Matrix4 & ViewMat, const Matrix4 & ProjMat, eObjectFilter Filter );
     void RenderLightShadows(GraphicsContext& gfxContext);
@@ -154,9 +157,9 @@ NumVar m_ShadowDimX("Application/Lighting/Shadow Dim X", 10, 1, 100, 1 );
 NumVar m_ShadowDimY("Application/Lighting/Shadow Dim Y", 10, 1, 100, 1 );
 NumVar m_ShadowDimZ("Application/Lighting/Shadow Dim Z", 10, 1, 100, 1 );
 
-NumVar m_SunDirX("Application/Lighting/Sun Dir X", -0.5f, -1.0f, 1.0f, 0.1f );
+NumVar m_SunDirX("Application/Lighting/Sun Dir X", -0.0f, -1.0f, 1.0f, 0.1f );
 NumVar m_SunDirY("Application/Lighting/Sun Dir Y", -1.0f, -1.0f, 1.0f, 0.1f );
-NumVar m_SunDirZ("Application/Lighting/Sun Dir Z", 0.5f, -1.0f, 1.0f, 0.1f );
+NumVar m_SunDirZ("Application/Lighting/Sun Dir Z", -1.0f, -1.0f, 1.0f, 0.1f );
 NumVar m_SunColorR("Application/Lighting/Sun Color R", 157.f, 0.0f, 255.0f, 1.0f );
 NumVar m_SunColorG("Application/Lighting/Sun Color G", 157.f, 0.0f, 255.0f, 1.0f );
 NumVar m_SunColorB("Application/Lighting/Sun Color B", 157.f, 0.0f, 255.0f, 1.0f );
@@ -177,9 +180,9 @@ void MikuViewer::Startup( void )
 
     MikuModel::Initialize();
 
-    const Vector3 eye = Vector3(0.0f, 20.0f, -20.0f);
-    m_SecondCamera.SetEyeAtUp( eye, Vector3(0.0, 20.f, 0.f), Vector3(kYUnitVector) );
-    m_SecondCamera.SetPerspectiveMatrix( XM_PIDIV4, 9.0f/16.0f, 1.0f, 20000.0f );
+    const Vector3 eye = Vector3(0.0f, 0.0f, -5.0f);
+    m_SecondCamera.SetEyeAtUp( eye, Vector3(0.0, 0.f, 0.f), Vector3(kYUnitVector) );
+    m_SecondCamera.SetPerspectiveMatrix( 60.f/180.f*3.1415, 1/1.33333, 1.0f, 800.0f );
     m_SecondCamera.Update();
 
     struct ModelInit
@@ -192,7 +195,7 @@ void MikuViewer::Startup( void )
     auto motionPath = L"";
     std::vector<ModelInit> list = {
         { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 10.f ) },
-        { L"Models/GUMIβ版修正.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
+        // { L"Models/GUMIβ版修正.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
         // { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
 #ifndef _DEBUG
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
@@ -213,7 +216,7 @@ void MikuViewer::Startup( void )
         m_Models.push_back( model );
     }
 #ifdef _DEBUG
-    m_Models.emplace_back( std::make_shared<Graphics::GroundPlane>() );
+    // m_Models.emplace_back( std::make_shared<Graphics::GroundPlane>() );
 #endif
 
 	// Depth-only (2x rate)
@@ -467,10 +470,8 @@ Matrix4 MakeGlobalShadowMatrix(const BaseCamera& camera, Vector3 LightDirection)
 
 BoolVar m_bShadowBound("Application/Camera/Shadow Bound", true);
 
-void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
+void MikuViewer::BuildOrthoShadowProjectionMatrix()
 {
-    ScopedTimer _prof( L"Render Shadow Map", gfxContext );
-
     Vector3 minVec( FLT_MAX ), maxVec( FLT_MIN );
     if (m_bShadowBound)
     {
@@ -523,6 +524,171 @@ void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
         casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
     lightView = lightView * m_ViewMatrix;
     m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
+}
+
+void MikuViewer::BuildLSPSMProjectionMatrix( void )
+{
+    Vector3 m_lightDir = Normalize(-m_SunDirection);
+    Vector3 eyeLightDir = m_ViewMatrix.Get3x3() * m_lightDir;
+
+    BoundingFrustum eyeFrustum( m_ProjMatrix );
+    std::vector<Vector3> bodyB;
+    FrustumCorner corner = eyeFrustum.GetFrustumCorners();
+    std::copy( corner.begin(), corner.end(), std::back_inserter( bodyB ) );
+
+    //  these are the limits specified by the physical camera
+    //  gamma is the "tilt angle" between the light and the view direction.
+
+    float fCosGamma = Dot( m_lightDir, Vector3(m_ViewMatrix.GetZ()));
+    float fLSPSM_NoptWeight = 1.0f;
+    float ZNEAR_MIN = 1.0f, ZFAR_MAX = 800.f;
+    bool hit = false;
+    std::vector<BoundingBox> m_ShadowReceiverPoints;
+    BoundingFrustum sceneFrustum( m_ProjMatrix*m_ViewMatrix );
+    Frustum frustum = m_SecondCamera.GetWorldSpaceFrustum();
+    float m_zNear = FLT_MAX, m_zFar = 0.f;
+    for (auto& model : m_Models) {
+        auto box = model->GetBoundingBox();
+        if (sceneFrustum.IntersectBox( box ))
+        {
+            box = m_ViewMatrix * box;
+            for (auto& pts : box.GetCorners())
+                bodyB.push_back( pts );
+            m_zNear = std::min(m_zNear, float(box.GetMin().GetZ()));
+            m_zFar = std::max(m_zFar, float(box.GetMax().GetZ()));
+            m_ShadowReceiverPoints.push_back( box );
+            hit = true;
+        }
+    }
+    if (hit)
+    {
+        m_zNear = std::max( ZNEAR_MIN, m_zNear );
+        m_zFar = std::min( ZFAR_MAX, m_zFar );
+    }
+    else
+    {
+        m_zNear = ZNEAR_MIN, m_zFar = ZFAR_MAX;
+    }
+
+    Matrix4 m_View = m_ViewMatrix;
+
+    //  compute the "light-space" basis, using the algorithm described in the paper
+    //  note:  since bodyB is defined in eye space, all of these vectors should also be defined in eye space
+    Vector3 leftVector, upVector, viewVector;
+
+    // look is (0,0,1)
+    const Vector3 eyeVector( 0.f, 0.f, -1.f );
+    upVector = m_View.Get3x3() * m_lightDir;
+    //  note: lightDir points away from the scene, so it is already the "negative" up direction;
+    //  no need to re-negate it.
+    leftVector = Normalize(Cross( upVector, eyeVector ));
+    viewVector = Cross( upVector, leftVector );
+
+    Matrix4 lightSpaceBasis( leftVector, upVector, viewVector, Vector3(kZero));
+    lightSpaceBasis = Transpose( lightSpaceBasis );
+
+    //  rotate all points into this new basis
+    for (auto& body : bodyB)
+        body = lightSpaceBasis.Transform(body);
+
+    Math::BoundingBox lightSpaceBox( bodyB );
+    Vector3 lightSpaceOrigin;
+    //  for some reason, the paper recommended using the x coordinate of the xformed viewpoint as
+    //  the x-origin for lightspace, but that doesn't seem to make sense...  instead, we'll take
+    //  the x-midpt of body B (like for the Y axis)
+    lightSpaceOrigin = lightSpaceBox.GetCenter();
+    float sinGamma = sqrtf( 1.f - fCosGamma*fCosGamma );
+
+    //  use average of the "real" near/far distance and the optimized near/far distance to get a more pleasant result
+    float Nopt0 = m_zNear + sqrtf( m_zNear*m_zFar );
+    float Nopt1 = ZNEAR_MIN + sqrtf( ZNEAR_MIN*ZFAR_MAX );
+    float fLSPSM_Nopt = (Nopt0 + Nopt1) / (2.f*sinGamma);
+    //  add a constant bias, to guarantee some minimum distance between the projection point and the near plane
+    fLSPSM_Nopt += 0.1f;
+    //  now use the weighting to scale between 0.1 and the computed Nopt
+    float Nopt = 0.1f + fLSPSM_NoptWeight * (fLSPSM_Nopt - 0.1f);
+
+    lightSpaceOrigin.SetZ( lightSpaceBox.GetMin().GetZ() - Nopt );
+
+    //  xlate all points in lsBodyB, to match the new lightspace origin, and compute the fov and aspect ratio
+    float maxx = 0.f, maxy = 0.f, maxz = 0.f;
+
+    std::vector<Vector3>::iterator ptIt = bodyB.begin();
+
+    while (ptIt != bodyB.end())
+    {
+        Vector3 tmp = *ptIt++ - lightSpaceOrigin;
+        ASSERT( tmp.GetZ() > 0.f );
+        maxx = std::max( maxx, fabsf( tmp.GetX() / tmp.GetZ() ) );
+        maxy = std::max( maxy, fabsf( tmp.GetY() / tmp.GetZ() ) );
+        maxz = std::max( maxz, float(tmp.GetZ()) );
+    }
+
+    float fovy = atanf( maxy );
+    float fovx = atanf( maxx );
+
+    bool m_ReverseZ = false;
+    Matrix4 lsTranslate, lsPerspective;
+    lsTranslate = Matrix4::MakeTranslate( -lightSpaceOrigin );
+    lsPerspective = Matrix4(DirectX::XMMatrixPerspectiveLH( 2.f*maxx*Nopt, 2.f*maxy*Nopt, Nopt, maxz ));
+    // PerspectiveMatrix has no w/h parm
+
+    lightSpaceBasis = lsPerspective * lsTranslate * lightSpaceBasis;
+
+    //  now rotate the entire post-projective cube, so that the shadow map is looking down the Y-axis
+    Matrix4 lsPermute(
+        Vector4( 1.f, 0.f, 0.f, 0.f ),
+        Vector4( 0.f, 0.f, -1.f, 0.f ),
+        Vector4( 0.f, 1.f, 0.f, 0.f ),
+        Vector4( 0.f, -0.5f, 1.5f, 1.f ) );
+
+    Matrix4 lsOrtho = OrthographicMatrix( 2.f, 1.f, 0.5f, 2.5f, m_ReverseZ );
+    lsPermute = lsOrtho * lsPermute;
+    lightSpaceBasis = lsPermute * lightSpaceBasis;
+
+    if (m_bShadowBound)
+    {
+        std::vector<Vector3> receiverPts;
+        receiverPts.reserve( m_ShadowReceiverPoints.size() * 8 );
+        for (auto& revr : m_ShadowReceiverPoints)
+        {
+            FrustumCorner c = revr.GetCorners();
+            for (auto pt : c)
+                receiverPts.push_back(pt);
+        }
+
+        for (auto& pts : receiverPts)
+            pts = lightSpaceBasis.Transform( pts );
+
+        BoundingBox receiverBox( receiverPts );
+        float maxX = std::min( 1.f, float(receiverBox.m_Max.GetX()) );
+        float maxY = std::min( 1.f, float(receiverBox.m_Max.GetY()) );
+        float minX = std::max( -1.f, float(receiverBox.m_Min.GetX()) );
+        float minY = std::max( -1.f, float(receiverBox.m_Min.GetY()) );
+        float boxWidth = maxX - minX;
+        float boxHeight = maxY - minY;
+
+        if (!(std::abs(boxWidth) < 0.0001f) && !(std::abs(boxHeight) < 0.0001f))
+        {
+            float boxX = (maxX + minX) * 0.5f;
+            float boxY = (maxY + minY) * 0.5f;
+
+            Matrix4 clipMatrix(
+                Vector4(2.f / boxWidth, 0.f, 0.f, 0.f),
+                Vector4(0.f, 2.f / boxHeight, 0.f, 0.f),
+                Vector4(0.f, 0.f, 1.f, 0.f),
+                Vector4(-2.f*boxX / boxWidth, -2.f*boxY / boxHeight, 0.f, 1.f) );
+            lightSpaceBasis = clipMatrix * lightSpaceBasis;
+        }
+    }
+    m_SunShadow.SetViewProjectMatrix( m_ViewMatrix, lightSpaceBasis );
+}
+
+void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
+{
+    ScopedTimer _prof( L"Render Shadow Map", gfxContext );
+
+    BuildLSPSMProjectionMatrix();
 
     g_ShadowBuffer.BeginRendering( gfxContext );
     gfxContext.SetPipelineState( m_ShadowPSO );
