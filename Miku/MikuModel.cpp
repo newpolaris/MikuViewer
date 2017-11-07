@@ -1,5 +1,6 @@
 ﻿#include "MikuModel.h"
 
+#include <limits>
 #include <string>
 #include <vector>
 #include <map>
@@ -176,7 +177,7 @@ void MikuModel::SetBoundingBox( void )
 
     Vector3 Center = it->Translate;
 
-    Vector3 MinV( FLT_MAX ), MaxV( FLT_MIN );
+    Vector3 MinV( std::numeric_limits<float>::max() ), MaxV( std::numeric_limits<float>::lowest() );
     for (auto& vert : m_VertexPos)
     {
         if (s_ExcludeSkyBox)

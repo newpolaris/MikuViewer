@@ -32,15 +32,15 @@ void BaseCamera::SetLookDirection( Vector3 look, Vector3 up )
 	Scalar lookLenSq = LengthSquare(look);
 	look = Select(look * RecipSqrt(lookLenSq), -Vector3(kZUnitVector), lookLenSq < Scalar(0.000001f));
 
-	Vector3 left = Cross(look, up); // forward == look
-	Scalar leftLenSq = LengthSquare(left);
-	left = Select(left * RecipSqrt(leftLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * look, leftLenSq < Scalar(0.000001f));
+	Vector3 right = Cross(up, look); // forward == look
+	Scalar rightLenSq = LengthSquare(right);
+	right = Select(right * RecipSqrt(rightLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * look, rightLenSq < Scalar(0.000001f));
 
 	// Compute actual up vector
-	up = Cross(left, look);
+	up = Cross(look, right);
 
 	// Finish constructing basis
-	m_Basis = Matrix3(-left, up, look);
+	m_Basis = Matrix3(right, up, look);
 	m_CameraToWorld.SetRotation(Quaternion(m_Basis));
 }
 

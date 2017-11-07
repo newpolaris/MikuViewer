@@ -157,9 +157,9 @@ NumVar m_ShadowDimX("Application/Lighting/Shadow Dim X", 10, 1, 100, 1 );
 NumVar m_ShadowDimY("Application/Lighting/Shadow Dim Y", 10, 1, 100, 1 );
 NumVar m_ShadowDimZ("Application/Lighting/Shadow Dim Z", 10, 1, 100, 1 );
 
-NumVar m_SunDirX("Application/Lighting/Sun Dir X", -0.0f, -1.0f, 1.0f, 0.1f );
+NumVar m_SunDirX("Application/Lighting/Sun Dir X", -0.5f, -1.0f, 1.0f, 0.1f );
 NumVar m_SunDirY("Application/Lighting/Sun Dir Y", -1.0f, -1.0f, 1.0f, 0.1f );
-NumVar m_SunDirZ("Application/Lighting/Sun Dir Z", -1.0f, -1.0f, 1.0f, 0.1f );
+NumVar m_SunDirZ("Application/Lighting/Sun Dir Z", 0.5f, -1.0f, 1.0f, 0.1f );
 NumVar m_SunColorR("Application/Lighting/Sun Color R", 157.f, 0.0f, 255.0f, 1.0f );
 NumVar m_SunColorG("Application/Lighting/Sun Color G", 157.f, 0.0f, 255.0f, 1.0f );
 NumVar m_SunColorB("Application/Lighting/Sun Color B", 157.f, 0.0f, 255.0f, 1.0f );
@@ -180,9 +180,9 @@ void MikuViewer::Startup( void )
 
     MikuModel::Initialize();
 
-    const Vector3 eye = Vector3(0.0f, 0.0f, -5.0f);
+    const Vector3 eye = Vector3(0.0f, 30.0f, -20.0f);
     m_SecondCamera.SetEyeAtUp( eye, Vector3(0.0, 0.f, 0.f), Vector3(kYUnitVector) );
-    m_SecondCamera.SetPerspectiveMatrix( 60.f/180.f*3.1415, 1/1.33333, 1.0f, 800.0f );
+    m_SecondCamera.SetPerspectiveMatrix( XM_PIDIV4, 9.0f/16.0f, 1.0f, 20000.0f );
     m_SecondCamera.Update();
 
     struct ModelInit
@@ -195,7 +195,7 @@ void MikuViewer::Startup( void )
     auto motionPath = L"";
     std::vector<ModelInit> list = {
         { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 10.f ) },
-        // { L"Models/GUMIβ版修正.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
+        { L"Models/GUMIβ版修正.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
         // { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
 #ifndef _DEBUG
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
@@ -385,7 +385,7 @@ void MikuViewer::RenderObjects( GraphicsContext& gfxContext, const Matrix4& View
 
 BoundingBox MikuViewer::GetBoundingBox()
 {
-    Vector3 minVec( FLT_MAX ), maxVec( FLT_MIN );
+    Vector3 minVec( std::numeric_limits<float>::max() ), maxVec( std::numeric_limits<float>::lowest() );
     for (auto& model : m_Models)
     {
         auto bound = model->GetBoundingBox();
@@ -472,7 +472,7 @@ BoolVar m_bShadowBound("Application/Camera/Shadow Bound", true);
 
 void MikuViewer::BuildOrthoShadowProjectionMatrix()
 {
-    Vector3 minVec( FLT_MAX ), maxVec( FLT_MIN );
+    Vector3 minVec( std::numeric_limits<float>::max() ), maxVec( std::numeric_limits<float>::lowest() );
     if (m_bShadowBound)
     {
         for (auto& model : m_Models)

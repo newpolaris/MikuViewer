@@ -4,6 +4,7 @@
 
 #include <array>
 #include <vector>
+#include <limits>
 #include "BoundingPlane.h"
 #include "VectorMath.h"
 
@@ -15,7 +16,7 @@ namespace Math
     class BoundingBox
     {
     public:
-        BoundingBox() : m_Min( FLT_MAX ), m_Max( FLT_MIN )
+        BoundingBox() : m_Min( FLT_MAX ), m_Max( std::numeric_limits<float>::lowest() )
         {
         }
 
@@ -23,7 +24,7 @@ namespace Math
         {
         }
 
-        BoundingBox( const std::vector<Vector3>& list ) : m_Min( FLT_MAX ), m_Max( FLT_MIN )
+        BoundingBox( const std::vector<Vector3>& list ) : m_Min( std::numeric_limits<float>::max() ), m_Max( std::numeric_limits<float>::lowest() )
         {
             for (auto& vec : list)
                 Merge( vec );
