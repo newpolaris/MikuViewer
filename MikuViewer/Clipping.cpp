@@ -155,7 +155,8 @@ namespace Math {
         if (3 > inter.size())
             return;
         // make place for one additional polygon in obj
-        VecPoint polyOut;
+        obj.resize( obj.size() + 1 );
+        VecPoint& polyOut = obj.back();
         // we have line segments in each poly of inter
         // take last linesegment as first and second point
         VecPoint& polyIn = inter.back();

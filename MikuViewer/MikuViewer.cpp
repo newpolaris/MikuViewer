@@ -572,8 +572,7 @@ void MikuViewer::BuildLSPSMProjectionMatrix( const BaseCamera& camera )
         minVec = Min( box.GetMin(), minVec );
         maxVec = Max( box.GetMax(), maxVec );
     }
-    // BoundingBox sceneAABox( minVec, maxVec );
-    BoundingBox sceneAABox( Vector3(-30,-30,-30), Vector3(30, 30, 30));
+    BoundingBox sceneAABox( minVec, maxVec );
     VecPoint points;
     calcFocusedLightVolumePoints( points, lightDir,
         sceneFrustum, sceneAABox );
