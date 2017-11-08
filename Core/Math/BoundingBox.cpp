@@ -27,7 +27,7 @@ void BoundingBox::Merge( const Vector3& vec )
 }
 
 // Use code from NVIDIA PSM DEMO
-bool BoundingBox::Intersect( float* hitDist, const Vector3& origPt, const Vector3& dir )
+bool BoundingBox::Intersect( float* hitDist, const Vector3& origPt, const Vector3& dir ) const
 {
     ASSERT( hitDist != nullptr );
 

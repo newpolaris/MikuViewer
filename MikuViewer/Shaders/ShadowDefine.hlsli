@@ -8,7 +8,7 @@
 //
 // 2, 3, 5, 7
 //
-#define FilterSize_ 7
+#define FilterSize_ 5
 
 // Shadow filter method list
 #define ShadowModeSingle_ 0
@@ -20,4 +20,4 @@
 #define ShadowModeFixedSizePCF_ 6
 
 // Shadow filter method
-#define ShadowMode_ ShadowModeOptimizedGaussinPCF_
+#define ShadowMode_ ShadowModeSingle_

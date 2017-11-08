@@ -262,25 +262,11 @@ namespace Math {
     }
 
     int intersectionLineAABox( Vector3& v, const Vector3& p, const Vector3& dir, const BoundingBox& b ) {
-        float t1 = 0.f;
-        float t2 = FLT_MAX;
-        int intersect =
-            clipTest( -dir.GetZ(), p.GetZ() - b.m_Min.GetZ(), &t1, &t2 ) && clipTest( dir.GetZ(), b.m_Max.GetZ() - p.GetZ(), &t1, &t2 ) &&
-            clipTest( -dir.GetY(), p.GetY() - b.m_Min.GetY(), &t1, &t2 ) && clipTest( dir.GetY(), b.m_Max.GetY() - p.GetY(), &t1, &t2 ) &&
-            clipTest( -dir.GetX(), p.GetX() - b.m_Min.GetX(), &t1, &t2 ) && clipTest( dir.GetX(), b.m_Max.GetX() - p.GetX(), &t1, &t2 );
-        if (!intersect) {
-            return 0;
-        }
-        intersect = 0;
-        if (0 <= t1) {
-            v = t1 * dir + p;
-            intersect = 1;
-        }
-        if (0 <= t2) {
-            v = t2 * dir + p;
-            intersect = 1;
-        }
-        return intersect;
+        float t = 0;
+        if (!b.Intersect( &t, p, dir ))
+            return false;
+        v = p + t*dir;
+        return true;
     }
 
     void includeObjectLightVolume( VecPoint& pts, const PolyObject& obj,
@@ -295,9 +281,8 @@ namespace Math {
         // intersected with the sceneAABox
         for (i = 0; i < size; i++) {
             Vector3 pt;
-            if (intersectionLineAABox( pt, points[i], ld, sceneAABox )) {
+            if (intersectionLineAABox( pt, points[i], ld, sceneAABox ))
                 points.push_back( pt );
-            }
         }
         pts = points;
     }

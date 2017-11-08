@@ -500,7 +500,7 @@ float3 GetShadow( float4 ShadowPosH, float3 PosH )
 #elif ShadowMode_ == ShadowModePoissonStratified_
         Result = ShadowModePoissonDiskStratified( ShadowPos, ShadowTexelSize, PosH, cascadeIdx );
 #elif ShadowMode_ == ShadowModeFixedSizePCF_
-        Result = SampleShadowMapFixedSizePCF( Input, ShadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
+        Result = SampleShadowMapFixedSizePCF( ShadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
 #elif ShadowMode_ == ShadowModeGridPCF_
         Result = SampleShadowMapGridPCF( shadowPosition, shadowPosDX, shadowPosDY, cascadeIdx );
 #endif

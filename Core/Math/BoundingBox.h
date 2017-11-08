@@ -38,7 +38,7 @@ namespace Math
         FrustumPlanes GetPlanes( void ) const;
 
         void Merge( const Vector3& vec );
-        bool Intersect( float* hitDist, const Vector3& origPt, const Vector3& dir );
+        bool Intersect( float* hitDist, const Vector3& origPt, const Vector3& dir ) const;
 
 		friend BoundingBox operator* ( const OrthogonalTransform& xform, const BoundingBox& box );	// Fast
 		friend BoundingBox operator* ( const AffineTransform& xform, const BoundingBox& box );		// Slow

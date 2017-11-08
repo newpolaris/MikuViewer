@@ -116,9 +116,11 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BaseShadowCamera.cpp" />
     <ClCompile Include="Clipping.cpp" />
     <ClCompile Include="MikuViewer.cpp" />
-    <ClCompile Include="Shadow.cpp" />
+    <ClCompile Include="ShadowCameraLiSPSM.cpp" />
+    <ClCompile Include="ShadowCameraUnitCube.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\DepthViewerPS.hlsl">
@@ -169,9 +171,11 @@
     <None Include="Shaders\Skinning.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BaseShadowCamera.h" />
     <ClInclude Include="Clipping.h" />
     <ClInclude Include="Shaders\ShadowDefine.hlsli" />
-    <ClInclude Include="Shadow.h" />
+    <ClInclude Include="ShadowCameraLiSPSM.h" />
+    <ClInclude Include="ShadowCameraUnitCube.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

@@ -41,53 +41,11 @@ void ShadowCamera::UpdateMatrix(
     }
     SetPosition( ShadowCenter );
 
-#if 0
-    SetLookDirection( LightDirection, Vector3(kZUnitVector) );
-    SetProjMatrix( Matrix4::MakeScale(Vector3(2.0f, 2.0f, 1.0f) * RcpDimensions) );
-#elif 0
-    SetLookDirection( LightDirection, Vector3(kYUnitVector) );
-    SetPosition( ShadowCenter );
-
-    Update();
-	// Transform bounding sphere to light space.
-	XMFLOAT3 sphereCenterLS;
-	DirectX::XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(ShadowCenter, m_ViewMatrix));
-
-	// Ortho frustum in light space encloses scene.
-	float l = sphereCenterLS.x - ShadowBounds.GetX();
-	float b = sphereCenterLS.y - ShadowBounds.GetY();
-	float n = sphereCenterLS.z - ShadowBounds.GetZ();
-	float r = sphereCenterLS.x + ShadowBounds.GetX();
-	float t = sphereCenterLS.y + ShadowBounds.GetY();
-	float f = sphereCenterLS.z + ShadowBounds.GetZ();;
-	XMMATRIX P = XMMatrixOrthographicOffCenterRH(l, r, b, t, n, f);
-    SetProjMatrix( Matrix4( P ) );
-#elif 0
-    SetLookDirection( LightDirection, Vector3(kYUnitVector) );
-    SetProjMatrix( PerspectiveMatrix(XM_PI / 4, 1.0f, 0.1f, 10000, m_ReverseZ ) );
-#elif 0
-    SetLookDirection( LightDirection, Vector3(kZUnitVector) );
-    SetProjMatrix( PerspectiveMatrix(XM_PI / 4, 1.0f, 0.1f, 10000, m_ReverseZ ) );
-#else
     SetLookDirection( LightDirection, Vector3(kYUnitVector) );
     SetProjMatrix( OrthographicMatrix(ShadowBounds.GetX(), ShadowBounds.GetY(), -ShadowBounds.GetZ(), ShadowBounds.GetZ(), m_ReverseZ) );
-#endif
 
     Update();
 
     // Transform from clip space to texture space
     m_ShadowMatrix = Matrix4( AffineTransform( Matrix3::MakeScale( 0.5f, -0.5f, 1.0f ), Vector3(0.5f, 0.5f, 0.0f) ) ) * m_ViewProjMatrix;
-}
-
-void ShadowCamera::SetViewProjectMatrix( const Matrix4& View, const Matrix4& Projection )
-{
-    m_ViewMatrix = View;
-    m_ProjMatrix = Projection;
-    m_ViewProjMatrix = Projection * View;
-    //  build the composite matrix that transforms from world space into post-projective light space
-    m_ShadowMatrix = m_ViewProjMatrix;
-
-    m_ClipToWorld = Invert(m_ViewProjMatrix);
-	m_FrustumVS = Frustum( m_ProjMatrix );
-	m_FrustumWS = m_CameraToWorld * m_FrustumVS;
 }

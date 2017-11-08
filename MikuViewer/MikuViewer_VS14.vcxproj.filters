@@ -21,10 +21,16 @@
     <ClCompile Include="MikuViewer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shadow.cpp">
+    <ClCompile Include="Clipping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Clipping.cpp">
+    <ClCompile Include="ShadowCameraLiSPSM.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowCameraUnitCube.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseShadowCamera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -60,13 +66,19 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Shadow.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Shaders\ShadowDefine.hlsli">
       <Filter>Shaders</Filter>
     </ClInclude>
     <ClInclude Include="Clipping.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowCameraUnitCube.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowCameraLiSPSM.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseShadowCamera.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

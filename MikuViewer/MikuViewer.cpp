@@ -25,8 +25,8 @@
 #include "GroundPlane.h"
 #include "Clipping.h"
 #include "Math/BoundingFrustum.h"
-
 #include "Math/BoundingBox.h"
+#include "ShadowCameraLiSPSM.h"
 #include "OrthographicCamera.h"
 
 #include "CompiledShaders/MikuModelVS.h"
@@ -98,8 +98,6 @@ public:
 private:
 
     BoundingBox GetBoundingBox();
-    void BuildOrthoShadowProjectionMatrix( const BaseCamera& camera );
-    void BuildLSPSMProjectionMatrix( const BaseCamera& camera );
     void RenderObjects( GraphicsContext& gfxContext, const Matrix4& ViewProjMat, eObjectFilter Filter );
     void RenderObjects( GraphicsContext& gfxContext, const Matrix4 & ViewMat, const Matrix4 & ProjMat, eObjectFilter Filter );
     void RenderLightShadows(GraphicsContext& gfxContext);
@@ -119,9 +117,8 @@ private:
 
     Vector3 m_SunDirection;
     Vector3 m_SunColor;
-    ShadowCamera m_SunShadow;
+    ShadowCameraLiSPSM m_SunShadow;
 
-    using IRenderObjectPtr = std::shared_ptr<Graphics::IRenderObject>;
     std::vector<IRenderObjectPtr> m_Models;
 	Graphics::Motion m_Motion;
 
@@ -148,10 +145,8 @@ EnumVar m_CameraType("Application/Camera/Camera Type", kCameraVirtual, kCameraVi
 BoolVar m_bDebugTexture("Application/Camera/Debug Texture", true);
 BoolVar m_bViewSplit("Application/Camera/View Split", false);
 BoolVar m_bShadowSplit("Application/Camera/Shadow Split", false);
-BoolVar m_bFixDepth("Application/Camera/Fix Depth", false);
 BoolVar m_bLightFrustum("Application/Camera/Light Frustum", false);
 BoolVar m_bStabilizeCascades("Application/Camera/Stabilize Cascades", false);
-
 ExpVar m_SunLightIntensity("Application/Lighting/Sun Light Intensity", 4.0f, 0.0f, 16.0f, 0.1f);
 ExpVar m_AmbientIntensity("Application/Lighting/Ambient Intensity", 0.1f, -16.0f, 16.0f, 0.1f);
 NumVar m_ShadowDimX("Application/Lighting/Shadow Dim X", 10, 1, 100, 1 );
@@ -195,8 +190,9 @@ void MikuViewer::Startup( void )
 
     auto motionPath = L"";
     std::vector<ModelInit> list = {
-        // { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 50.f ) },
+        { L"Models/Lat0.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 50.f ) },
         { L"Models/GUMIβ版修正.pmd", motionPath, XMFLOAT3( 0.f, 0.f, 0.f ) },
+        { L"Models/Lat式ミクVer2.31_White.pmd", motionPath, XMFLOAT3( -11.f, 10.f, -19.f ) },
         // { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
 #ifndef _DEBUG
         { L"Models/Library.pmd", L"", XMFLOAT3( 0.f, 1.f, 0.f ) },
@@ -356,6 +352,7 @@ void MikuViewer::Update( float deltaT )
         m_Frame = m_Frame + deltaT * 30.f;
 
     m_pSecondCameraController->Update( deltaT );
+    m_SunShadow.UpdateMatrix( m_Models, m_SunDirection, m_SecondCamera );
 
 	m_ViewMatrix = SelectedCamera()->GetViewMatrix();
     m_ProjMatrix = SelectedCamera()->GetProjMatrix();
@@ -469,284 +466,11 @@ Matrix4 MakeGlobalShadowMatrix(const BaseCamera& camera, Vector3 LightDirection)
     return Tex * lightCamera.GetViewProjMatrix();
 }
 
-BoolVar m_bShadowBound("Application/Camera/Shadow Bound", true);
-
-void MikuViewer::BuildOrthoShadowProjectionMatrix( const BaseCamera& camera )
-{
-    Matrix4 view = camera.GetViewMatrix();
-
-    Vector3 minVec( std::numeric_limits<float>::max() ), maxVec( std::numeric_limits<float>::lowest() );
-    if (m_bShadowBound)
-    {
-        for (auto& model : m_Models)
-        {
-            auto bound = model->GetBoundingBox();
-            minVec = Min(bound.GetMin(), minVec);
-            maxVec = Max(bound.GetMax(), maxVec);
-        }
-        m_ShadowDimX = maxVec.GetX(), m_ShadowDimY = maxVec.GetY(), m_ShadowDimZ = maxVec.GetZ();
-    }
-    else
-    {
-        minVec = -Vector3( m_ShadowDimX, m_ShadowDimY, m_ShadowDimZ );
-        maxVec = -minVec;
-    }
-
-    // caster and reciver use same sized box
-    BoundingBox frustumAABB( minVec, maxVec );
-    BoundingBox casterAABB( minVec, maxVec );
-    Vector3 lightDir = Normalize(-m_SunDirection);
-    Vector3 eyeLightDir = view.Get3x3() * lightDir;
-
-    frustumAABB = view * frustumAABB;
-    casterAABB = view * casterAABB;
-
-    //  light pt is "infinitely" far away from the view frustum.
-    //  however, all that's really needed is to place it just outside of all shadow casters
-    Vector3 frustumCenter = frustumAABB.GetCenter();
-    float t;
-    casterAABB.Intersect( &t, frustumCenter, eyeLightDir );
-
-    Vector3 lightPt = frustumCenter + 2.f*t*eyeLightDir;
-    const Vector3 yAxis(0.f, 1.f, 0.f);
-    const Vector3 zAxis(0.f, 0.f, 1.f);
-    Vector3 axis;
-    if (fabsf( Dot( eyeLightDir, yAxis ) ) > 0.99f)
-        axis = zAxis;
-    else
-        axis = yAxis;
-
-    Matrix4 lightView = Matrix4(XMMatrixLookAtLH( lightPt, frustumCenter, axis ));
-    frustumAABB = lightView * frustumAABB;
-    casterAABB = lightView * casterAABB;
-
-    //  use a small fudge factor for the near plane, to avoid some minor clipping artifacts
-    Matrix4 lightProj = Matrix4( DirectX::XMMatrixOrthographicOffCenterLH(
-        frustumAABB.m_Min.GetX(), frustumAABB.m_Max.GetX(),
-        frustumAABB.m_Min.GetY(), frustumAABB.m_Max.GetY(),
-        casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
-    lightView = lightView * view;
-    m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
-}
-
-Vector3 calcUpVec( Vector3 viewDir, Vector3 lightDir )
-{
-    Vector3 left = Cross( lightDir, viewDir );
-    return Normalize( Cross( left, lightDir ) );
-}
-
-Matrix4 look( const Vector3 pos, const Vector3 dir, const Vector3 up )
-{
-    Vector3 dirN;
-    Vector3 upN;
-    Vector3 lftN;
-
-    lftN = Cross( dir, up );
-    lftN = Normalize( lftN );
-
-    upN = Cross( lftN, dir );
-    upN = Normalize( upN );
-    dirN = Normalize( dir );
-
-    Matrix4 lightSpaceBasis( -lftN, upN, dirN, Vector3( kZero ) );
-    lightSpaceBasis = Transpose( lightSpaceBasis );
-    Matrix4 lightView = lightSpaceBasis * Matrix4::MakeTranslate( -pos );
-    return lightView;
-}
-
-std::vector<Vector3> transformVecPoint( const std::vector<Vector3>& B, Matrix4 mat )
-{
-    std::vector<Vector3> R;
-    R.reserve( B.size() );
-    for (auto& b : B)
-        R.push_back( mat.Transform( b ) );
-    return R;
-}
-
-Matrix4 scaleTranslateToFit( BoundingBox& aabb )
-{
-    return Matrix4( DirectX::XMMatrixOrthographicOffCenterLH(
-        aabb.m_Min.GetX(), aabb.m_Max.GetX(),
-        aabb.m_Min.GetY(), aabb.m_Max.GetY(),
-        aabb.m_Min.GetZ(), aabb.m_Max.GetZ() ) );
-}
-
-void MikuViewer::BuildLSPSMProjectionMatrix( const BaseCamera& camera )
-{
-    Matrix4 view = camera.GetViewMatrix();
-    Matrix4 proj = camera.GetProjMatrix();
-
-    Vector3 lightDir = Normalize(m_SunDirection);
-
-    //  these are the limits specified by the physical camera
-    //  gamma is the "tilt angle" between the light and the view direction.
-
-    float fCosGamma = Dot( lightDir, Vector3(view.GetZ()));
-    BoundingFrustum sceneFrustum( proj*view );
-    Vector3 minVec( std::numeric_limits<float>::max() ), maxVec( std::numeric_limits<float>::lowest() );
-    for (auto& model : m_Models) {
-        auto box = model->GetBoundingBox();
-        minVec = Min( box.GetMin(), minVec );
-        maxVec = Max( box.GetMax(), maxVec );
-    }
-    BoundingBox sceneAABox( minVec, maxVec );
-    VecPoint points;
-    calcFocusedLightVolumePoints( points, lightDir,
-        sceneFrustum, sceneAABox );
-    std::vector<Vector3> B = points;
-
-    Vector3 eyePos = camera.GetPosition();
-    Vector3 viewDir = -camera.GetForwardVec();
-    Matrix4 lightView = look( eyePos, lightDir, viewDir );
-
-	//transform the light volume points from world into light space
-    B = transformVecPoint( B, lightView );
-
-	//calculate the cubic hull (an AABB)
-	//of the light space extents of the intersection body B
-	//and save the two extreme points min and max
-    BoundingBox aabb(B);
-
-	//refit to unit cube
-	//this operation calculates a scale translate matrix that
-	//maps the two extreme points min and max into (-1,-1,-1) and (1,1,1)
-    Matrix4 lightProj = scaleTranslateToFit( aabb );
-    m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
-
-#if 0
-    Matrix4 lightView = Matrix4(XMMatrixLookAtLH( lightPt, frustumCenter, axis ));
-    frustumAABB = lightView * frustumAABB;
-    casterAABB = lightView * casterAABB;
-
-    //  use a small fudge factor for the near plane, to avoid some minor clipping artifacts
-    Matrix4 lightProj = Matrix4( DirectX::XMMatrixOrthographicOffCenterLH(
-        frustumAABB.m_Min.GetX(), frustumAABB.m_Max.GetX(),
-        frustumAABB.m_Min.GetY(), frustumAABB.m_Max.GetY(),
-        casterAABB.m_Min.GetZ(), frustumAABB.m_Max.GetZ() ) );
-    lightView = lightView * view;
-    m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
-#endif
-
-#if 0
-    //  compute the "light-space" basis, using the algorithm described in the paper
-    //  note:  since bodyB is defined in eye space, all of these vectors should also be defined in eye space
-    Vector3 leftVector, upVector, viewVector;
-
-    // look is (0,0,1)
-    const Vector3 eyeVector( 0.f, 0.f, -1.f );
-    upVector = view.Get3x3() * lightDir;
-    //  note: lightDir points away from the scene, so it is already the "negative" up direction;
-    //  no need to re-negate it.
-    leftVector = Normalize(Cross( upVector, eyeVector ));
-    viewVector = Cross( upVector, leftVector );
-
-    Matrix4 lightSpaceBasis( leftVector, upVector, viewVector, Vector3(kZero));
-    lightSpaceBasis = Transpose( lightSpaceBasis );
-
-    //  rotate all points into this new basis
-    for (auto& body : bodyB)
-        body = lightSpaceBasis.Transform(body);
-
-    Math::BoundingBox lightSpaceBox( bodyB );
-    Vector3 lightSpaceOrigin;
-    //  for some reason, the paper recommended using the x coordinate of the xformed viewpoint as
-    //  the x-origin for lightspace, but that doesn't seem to make sense...  instead, we'll take
-    //  the x-midpt of body B (like for the Y axis)
-    lightSpaceOrigin = lightSpaceBox.GetCenter();
-    float sinGamma = sqrtf( 1.f - fCosGamma*fCosGamma );
-
-    //  use average of the "real" near/far distance and the optimized near/far distance to get a more pleasant result
-    float Nopt0 = m_zNear + sqrtf( m_zNear*m_zFar );
-    float Nopt1 = ZNEAR_MIN + sqrtf( ZNEAR_MIN*ZFAR_MAX );
-    float fLSPSM_Nopt = (Nopt0 + Nopt1) / (2.f*sinGamma);
-    //  add a constant bias, to guarantee some minimum distance between the projection point and the near plane
-    fLSPSM_Nopt += 0.1f;
-    //  now use the weighting to scale between 0.1 and the computed Nopt
-    float Nopt = 0.1f + fLSPSM_NoptWeight * (fLSPSM_Nopt - 0.1f);
-
-    lightSpaceOrigin.SetZ( lightSpaceBox.GetMin().GetZ() - Nopt );
-
-    //  xlate all points in lsBodyB, to match the new lightspace origin, and compute the fov and aspect ratio
-    float maxx = 0.f, maxy = 0.f, maxz = 0.f;
-
-    std::vector<Vector3>::iterator ptIt = bodyB.begin();
-
-    while (ptIt != bodyB.end())
-    {
-        Vector3 tmp = *ptIt++ - lightSpaceOrigin;
-        ASSERT( tmp.GetZ() > 0.f );
-        maxx = std::max( maxx, fabsf( tmp.GetX() / tmp.GetZ() ) );
-        maxy = std::max( maxy, fabsf( tmp.GetY() / tmp.GetZ() ) );
-        maxz = std::max( maxz, float(tmp.GetZ()) );
-    }
-
-    float fovy = atanf( maxy );
-    float fovx = atanf( maxx );
-
-    bool m_ReverseZ = false;
-    Matrix4 lsTranslate, lsPerspective;
-    lsTranslate = Matrix4::MakeTranslate( -lightSpaceOrigin );
-    lsPerspective = Matrix4(DirectX::XMMatrixPerspectiveLH( 2.f*maxx*Nopt, 2.f*maxy*Nopt, Nopt, maxz ));
-    // PerspectiveMatrix has no w/h parm
-
-    lightSpaceBasis = lsPerspective * lsTranslate * lightSpaceBasis;
-
-    //  now rotate the entire post-projective cube, so that the shadow map is looking down the Y-axis
-    Matrix4 lsPermute(
-        Vector4( 1.f, 0.f, 0.f, 0.f ),
-        Vector4( 0.f, 0.f, -1.f, 0.f ),
-        Vector4( 0.f, 1.f, 0.f, 0.f ),
-        Vector4( 0.f, -0.5f, 1.5f, 1.f ) );
-
-    Matrix4 lsOrtho = OrthographicMatrix( 2.f, 1.f, 0.5f, 2.5f, m_ReverseZ );
-    lsPermute = lsOrtho * lsPermute;
-    lightSpaceBasis = lsPermute * lightSpaceBasis;
-
-    if (m_bShadowBound)
-    {
-        std::vector<Vector3> receiverPts;
-        receiverPts.reserve( m_ShadowReceiverPoints.size() * 8 );
-        for (auto& revr : m_ShadowReceiverPoints)
-        {
-            FrustumCorner c = revr.GetCorners();
-            for (auto pt : c)
-                receiverPts.push_back(pt);
-        }
-
-        for (auto& pts : receiverPts)
-            pts = lightSpaceBasis.Transform( pts );
-
-        BoundingBox receiverBox( receiverPts );
-        float maxX = std::min( 1.f, float(receiverBox.m_Max.GetX()) );
-        float maxY = std::min( 1.f, float(receiverBox.m_Max.GetY()) );
-        float minX = std::max( -1.f, float(receiverBox.m_Min.GetX()) );
-        float minY = std::max( -1.f, float(receiverBox.m_Min.GetY()) );
-        float boxWidth = maxX - minX;
-        float boxHeight = maxY - minY;
-
-        if (!(std::abs(boxWidth) < 0.0001f) && !(std::abs(boxHeight) < 0.0001f))
-        {
-            float boxX = (maxX + minX) * 0.5f;
-            float boxY = (maxY + minY) * 0.5f;
-
-            Matrix4 clipMatrix(
-                Vector4(2.f / boxWidth, 0.f, 0.f, 0.f),
-                Vector4(0.f, 2.f / boxHeight, 0.f, 0.f),
-                Vector4(0.f, 0.f, 1.f, 0.f),
-                Vector4(-2.f*boxX / boxWidth, -2.f*boxY / boxHeight, 0.f, 1.f) );
-            lightSpaceBasis = clipMatrix * lightSpaceBasis;
-        }
-    }
-    m_SunShadow.SetViewProjectMatrix( m_ViewMatrix, lightSpaceBasis );
-#endif
-}
+BoolVar m_bOrthoUnit("Application/Camera/Ortho Unit", false);
 
 void MikuViewer::RenderShadowMap( GraphicsContext& gfxContext )
 {
     ScopedTimer _prof( L"Render Shadow Map", gfxContext );
-
-    BuildOrthoShadowProjectionMatrix( m_SecondCamera );
-    BuildLSPSMProjectionMatrix( m_SecondCamera );
 
     g_ShadowBuffer.BeginRendering( gfxContext );
     gfxContext.SetPipelineState( m_ShadowPSO );

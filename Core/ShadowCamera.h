@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard
+// Author:  James Stanard 
 //
 
 #pragma once
@@ -24,7 +24,7 @@ namespace GameCore
     public:
         ShadowCamera() {}
 
-        void UpdateMatrix(
+        void UpdateMatrix( 
             Vector3 LightDirection,		// Direction parallel to light, in direction of travel
             Vector3 ShadowCenter,		// Center location on far bounding plane of shadowed region
             Vector3 ShadowBounds,		// Width, height, and depth in world space represented by the shadow buffer
@@ -32,8 +32,6 @@ namespace GameCore
             uint32_t BufferHeight,		// Shadow buffer height--usually same as width
             uint32_t BufferPrecision	// Bit depth of shadow buffer--usually 16 or 24
             );
-
-        void SetViewProjectMatrix( const Matrix4& View, const Matrix4& Projection );
 
         // Used to transform world space to texture space for shadow sampling
         const Matrix4& GetShadowMatrix() const { return m_ShadowMatrix; }
