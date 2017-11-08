@@ -554,6 +554,23 @@ Matrix4 look( const Vector3 pos, const Vector3 dir, const Vector3 up )
     return lightView;
 }
 
+std::vector<Vector3> transformVecPoint( const std::vector<Vector3>& B, Matrix4 mat )
+{
+    std::vector<Vector3> R;
+    R.reserve( B.size() );
+    for (auto& b : B)
+        R.push_back( mat.Transform( b ) );
+    return R;
+}
+
+Matrix4 scaleTranslateToFit( BoundingBox& aabb )
+{
+    return Matrix4( DirectX::XMMatrixOrthographicOffCenterLH(
+        aabb.m_Min.GetX(), aabb.m_Max.GetX(),
+        aabb.m_Min.GetY(), aabb.m_Max.GetY(),
+        aabb.m_Min.GetZ(), aabb.m_Max.GetZ() ) );
+}
+
 void MikuViewer::BuildLSPSMProjectionMatrix( const BaseCamera& camera )
 {
     Matrix4 view = camera.GetViewMatrix();
@@ -576,20 +593,24 @@ void MikuViewer::BuildLSPSMProjectionMatrix( const BaseCamera& camera )
     VecPoint points;
     calcFocusedLightVolumePoints( points, lightDir,
         sceneFrustum, sceneAABox );
+    std::vector<Vector3> B = points;
 
     Vector3 eyePos = camera.GetPosition();
     Vector3 viewDir = -camera.GetForwardVec();
     Matrix4 lightView = look( eyePos, lightDir, viewDir );
 
-    std::vector<Vector3> B = points;
-    for (auto& b : B)
-        b = lightView.Transform(b);
+	//transform the light volume points from world into light space
+    B = transformVecPoint( B, lightView );
 
+	//calculate the cubic hull (an AABB)
+	//of the light space extents of the intersection body B
+	//and save the two extreme points min and max
     BoundingBox aabb(B);
-    Matrix4 lightProj = Matrix4( DirectX::XMMatrixOrthographicOffCenterLH(
-        aabb.m_Min.GetX(), aabb.m_Max.GetX(),
-        aabb.m_Min.GetY(), aabb.m_Max.GetY(),
-        aabb.m_Min.GetZ(), aabb.m_Max.GetZ() ) );
+
+	//refit to unit cube
+	//this operation calculates a scale translate matrix that
+	//maps the two extreme points min and max into (-1,-1,-1) and (1,1,1)
+    Matrix4 lightProj = scaleTranslateToFit( aabb );
     m_SunShadow.SetViewProjectMatrix( lightView, lightProj );
 
 #if 0

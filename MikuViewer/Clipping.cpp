@@ -49,14 +49,13 @@ namespace Math {
     bool intersectPlaneEdge( Vector3& Output, const BoundingPlane& Plane,
         const Vector3& A, const Vector3& B )
     {
-        Vector3 Diff = B - A;
-        Scalar T = Dot( Plane.GetNormal(), Diff );
-        if (DirectX::XMVector3NearEqual( T, Vector3( kZero ), g_XMEpsilon.v ))
-            return false;
-        T = (Plane.GetDistance() - Dot(Plane.GetNormal(), A )) /T;
+        Vector3 U = B - A;
+        Vector3 N = Plane.GetNormal();
+        Scalar D = Plane.GetDistance();
+        Scalar T = (-Dot(N, A) - D) / Dot( N, U );
         if (T < 0.0f || 1.0f < T)
             return false;
-        Output = Vector3(XMVectorMultiplyAdd(Diff, T, A));
+        Output = Vector3(XMVectorMultiplyAdd(U, T, A));
         return true;
     }
 
@@ -71,8 +70,7 @@ namespace Math {
         outside.resize( poly.size() );
 
         for (size_t i = 0; i < poly.size(); i++)
-            // outside[i] = A.DistanceFromPoint( poly[i] ) > 0.f;
-            outside[i] = (Dot(A.GetNormal(), poly[i]) - A.GetDistance()) > 0.f;
+            outside[i] = A.DistanceFromPoint( poly[i] ) < 0.f;
 
         for (size_t i = 0; i < poly.size(); i++)
         {

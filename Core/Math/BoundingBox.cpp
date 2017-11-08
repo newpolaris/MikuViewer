@@ -70,20 +70,19 @@ bool BoundingBox::Intersect( float* hitDist, const Vector3& origPt, const Vector
     return inside;
 }
 
-// Going outside
 FrustumPlanes BoundingBox::GetPlanes( void ) const
 {
     return {
-        BoundingPlane( 0.0f, -1.0f,  0.0f, Abs(m_Min.GetY()) ), // bottom
-        BoundingPlane( 0.0f,  1.0f,  0.0f, Abs(m_Max.GetY()) ), // top
-        BoundingPlane(-1.0f,  0.0f,  0.0f, Abs(m_Min.GetX()) ), // left
-        BoundingPlane( 1.0f,  0.0f,  0.0f, Abs(m_Max.GetX()) ), // right
+        BoundingPlane( 0.0f,  1.0f,  0.0f, -m_Min.GetY() ), // bottom
+        BoundingPlane( 0.0f, -1.0f,  0.0f, m_Max.GetY() ), // top
+        BoundingPlane( 1.0f,  0.0f,  0.0f, -m_Min.GetX() ), // left
+        BoundingPlane(-1.0f,  0.0f,  0.0f, m_Max.GetX() ), // right
     #if RIGHT
-        BoundingPlane( 0.0f,  0.0f, -1.0f, Abs(m_Min.GetZ()) ), // back
-        BoundingPlane( 0.0f,  0.0f,  1.0f, Abs(m_Max.GetZ()) ), // front
+        BoundingPlane( 0.0f,  0.0f,  1.0f, -m_Min.GetZ() ), // back
+        BoundingPlane( 0.0f,  0.0f, -1.0f, m_Max.GetZ() ), // front
     #else
-        BoundingPlane( 0.0f,  0.0f,  1.0f, Abs(m_Max.GetZ()) ), // back
-        BoundingPlane( 0.0f,  0.0f, -1.0f, Abs(m_Min.GetZ()) ), // front
+        BoundingPlane( 0.0f,  0.0f, -1.0f, m_Max.GetZ() ), // back
+        BoundingPlane( 0.0f,  0.0f,  1.0f, -m_Min.GetZ() ), // front
     #endif
     };
 }
