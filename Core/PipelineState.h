@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #pragma once
@@ -29,6 +29,7 @@ class DepthStencilState;
 class RasterizerState;
 class Shader;
 struct InputDesc;
+struct StreamOutDesc;
 struct GraphicsPipelineStateDesc;
 struct ComputePipelineStateDesc;
 
@@ -64,6 +65,7 @@ public:
     };
 
 	PSO() : m_LoadingState(kStateUnloaded) {}
+    static void DestroyAll( void );
 	virtual ~PSO() {}
 
     std::atomic<ELoadingState> m_LoadingState;
@@ -82,17 +84,21 @@ public:
 	virtual ~GraphicsPSO();
 	void Destroy();
 
-	std::shared_ptr<GraphicsPipelineState> GraphicsPSO::GetState();
+	GraphicsPipelineState* GetState();
+
+    D3D11_RASTERIZER_DESC GetRasterizerState() const;
 
 	void SetBlendState( const D3D11_BLEND_DESC& BlendDesc );
 	void SetRasterizerState( const D3D11_RASTERIZER_DESC& RasterizerDesc );
 	void SetDepthStencilState( const D3D11_DEPTH_STENCIL_DESC& DepthStencilDesc );
+    void SetBlendFactor( FLOAT BlendFactor[4] );
 	void SetSampleMask( UINT SampleMask );
 	void SetStencilRef( UINT StencilRef );
 	void SetPrimitiveTopologyType( D3D11_PRIMITIVE_TOPOLOGY TopologyType );
 	void SetRenderTargetFormat( DXGI_FORMAT RTVFormat, DXGI_FORMAT DSVFormat, UINT MsaaCount = 1, UINT MsaaQuality = 0 );
 	void SetRenderTargetFormats( UINT NumRTVs, const DXGI_FORMAT* RTVFormats, DXGI_FORMAT DSVFormat, UINT MsaaCount = 1, UINT MsaaQuality = 0 );
 	void SetInputLayout( UINT NumElements, const InputDesc* pInputElementDescs );
+    void SetStreamOutEntries( UINT NumElements, const StreamOutDesc* pStreamoutDescs );
 	void SetVertexShader( const std::string& Name, const void* Binary, size_t Size );
 	void SetPixelShader( const std::string& Name, const void* Binary, size_t Size );
 	void SetGeometryShader( const std::string& Name, const void* Binary, size_t Size );
@@ -104,7 +110,7 @@ public:
 
 private:
 	std::unique_ptr<GraphicsPipelineStateDesc> m_PSODesc;
-	std::shared_ptr<GraphicsPipelineState> m_PSOState;
+	GraphicsPipelineState* m_PSOState;
 };
 
 class ComputePSO : public PSO
@@ -118,7 +124,7 @@ public:
     virtual ~ComputePSO();
 	void Destroy();
 
-	std::shared_ptr<ComputePipelineState> ComputePSO::GetState();
+	ComputePipelineState* GetState();
 
 	void SetComputeShader( const std::string& Name, const void* Binary, size_t Size );
 	void Finalize();
@@ -126,5 +132,5 @@ public:
 private:
 
 	std::unique_ptr<ComputePipelineStateDesc> m_PSODesc;
-	std::shared_ptr<ComputePipelineState> m_PSOState;
+	ComputePipelineState* m_PSOState;
 };

@@ -16,25 +16,27 @@
 
 #include "pch.h"
 #include "GpuResource.h"
+#include "IColorBuffer.h"
 #include "Mapping.h"
 #include "Utility.h"
 #include "TextUtility.h"
 #include "FileUtility.h"
 
-class Texture : public GpuResource
+class Texture : public GpuResource, public IColorBuffer
 {
 	friend class CommandContext;
 
 public:
 
-	Texture() { }
+    Texture();
 
 	// Create a 1-level 2D texture
 	void Create( size_t Width, size_t Height, DXGI_FORMAT Format, const void* InitData );
 
-	bool CreateWICFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB = false );
-	bool CreateTGAFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB = false );
 	bool CreateDDSFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB = false );
+	bool CreateHDRFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB = false );
+	bool CreateTGAFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB = false );
+	bool CreateWICFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB = false );
 
 	virtual void Destroy() override
 	{
@@ -42,14 +44,22 @@ public:
 		m_SRV = nullptr;
 	}
 
-	virtual const D3D11_SRV_HANDLE GetSRV() const { return m_SRV.Get(); }
+	virtual const D3D11_SRV_HANDLE GetSRV() const override { return m_SRV.Get(); }
+    void SetProperty( void );
 
 	bool operator!() { return m_SRV == nullptr; }
+    bool IsTransparent() const;
 
 protected:
 
+    bool m_bTransparent;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_SRV;
 };
+
+inline bool Texture::IsTransparent() const
+{
+    return m_bTransparent;
+}
 
 class ManagedTexture : public Texture
 {
@@ -89,8 +99,9 @@ namespace TextureManager
 
 	const ManagedTexture* LoadFromFile( const std::wstring& fileName, bool sRGB = false );
 	const ManagedTexture* LoadDDSFromFile( const std::wstring& fileName, bool sRGB = false );
-	const ManagedTexture* LoadWISFromFile( const std::wstring& fileName, bool sRGB = false );
+	const ManagedTexture* LoadHDRFromFile( const std::wstring& fileName, bool sRGB = false );
 	const ManagedTexture* LoadTGAFromFile( const std::wstring& fileName, bool sRGB = false );
+	const ManagedTexture* LoadWISFromFile( const std::wstring& fileName, bool sRGB = false );
 	const ManagedTexture* LoadFromStream( const std::wstring& key, std::istream& stream, bool sRGB = false );
     const ManagedTexture* LoadFromMemory( const std::wstring & key, size_t size, void * data, bool sRGB );
     const ManagedTexture* LoadFromMemory( const std::wstring& key, Utility::ByteArray ba, bool sRGB );
@@ -105,11 +116,17 @@ namespace TextureManager
 		return LoadDDSFromFile(Utility::MakeWStr(fileName), sRGB);
 	}
 
+	inline const ManagedTexture* LoadHDRFromFile( const std::string& fileName, bool sRGB = false )
+	{
+		return LoadHDRFromFile(Utility::MakeWStr(fileName), sRGB);
+	}
+
 	inline const ManagedTexture* LoadWISFromFile( const std::string& fileName, bool sRGB = false )
 	{
 		return LoadWISFromFile(Utility::MakeWStr(fileName), sRGB);
 	}
 
-	const Texture& GetBlackTex2D(void);
-	const Texture& GetWhiteTex2D(void);
+	const ManagedTexture& GetBlackTex2D(void);
+	const ManagedTexture& GetWhiteTex2D(void);
+    const ManagedTexture& GetMagentaTex2D(void);
 }

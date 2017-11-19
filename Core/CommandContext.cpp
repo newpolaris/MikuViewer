@@ -1,15 +1,3 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-// Developed by Minigraph
-//
-// Author:  James Stanard
-//
 #include "pch.h"
 #include "CommandContext.h"
 #include "ColorBuffer.h"
@@ -22,6 +10,13 @@
 #include "EngineProfiling.h"
 
 using namespace Graphics;
+
+//
+// Use code from 'ModelViwer'
+// Developed by Minigraph
+// Author:  James Stanard
+// Copyright (c) Microsoft. All rights reserved.
+//
 
 void ContextManager::DestroyAllContexts( void )
 {
@@ -83,11 +78,11 @@ void CommandContext::DestroyAllContexts(void)
 	g_ContextManager.DestroyAllContexts();
 }
 
-ComputeContext::ComputeContext() : CommandContext( kComputeContext )
+ComputeContext::ComputeContext() : CommandContext( kComputeContext ), m_PSOState(nullptr)
 {
 }
 
-GraphicsContext::GraphicsContext() : CommandContext( kGraphicsContext )
+GraphicsContext::GraphicsContext() : CommandContext( kGraphicsContext ), m_PSOState(nullptr)
 {
 }
 
@@ -100,10 +95,59 @@ CommandContext& CommandContext::Begin( ContextType Type, const std::wstring ID )
 	return *NewContext;
 }
 
+void CommandContext::WriteBuffer( GpuResource& Dest, size_t DestOffset, const void* BufferData, size_t NumBytes )
+{
+    ASSERT(BufferData != nullptr && Math::IsAligned(BufferData, 16));
+    DynAlloc TempSpace = m_CpuLinearAllocator.Allocate( NumBytes, 512 );
+    SIMDMemCopy(TempSpace.DataPtr, BufferData, Math::DivideByMultiple(NumBytes, 16));
+    CopyBufferRegion(Dest, DestOffset, TempSpace.Buffer, TempSpace.FirstConstant*16, NumBytes );
+}
+
+
+void CommandContext::FillBuffer( GpuResource& Dest, size_t DestOffset, DWParam Value, size_t NumBytes )
+{
+    DynAlloc TempSpace = m_CpuLinearAllocator.Allocate( NumBytes, 512 );
+    __m128 VectorValue = _mm_set1_ps(Value.Float);
+    SIMDMemFill(TempSpace.DataPtr, VectorValue, Math::DivideByMultiple(NumBytes, 16));
+    CopyBufferRegion(Dest, DestOffset, TempSpace.Buffer, TempSpace.FirstConstant*16, NumBytes );
+}
+
+void CommandContext::TransitionResource( GpuResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate )
+{
+    Resource, NewState, FlushImmediate;
+}
+
+void CommandContext::InsertUAVBarrier( GpuResource& Resource, bool FlushImmediate )
+{
+    Resource, FlushImmediate;
+}
+
+void CommandContext::InsertAliasBarrier( GpuResource& Before, GpuResource& After, bool FlushImmediate )
+{
+    Before, After, FlushImmediate;
+}
+
 ComputeContext& ComputeContext::Begin( const std::wstring& ID )
 {
     CommandContext& NewContext = CommandContext::Begin( kComputeContext, ID );
     return NewContext.GetComputeContext();
+}
+
+void ComputeContext::ClearUAV(GpuBuffer& Target)
+{
+    // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV (because it essentially runs
+    // a shader to set all of the values).
+    const UINT ClearColor[4] = {};
+    m_CommandList->ClearUnorderedAccessViewUint(Target.GetUAV(), ClearColor);
+}
+
+void ComputeContext::ClearUAV(ColorBuffer& Target)
+{
+    // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV (because it essentially runs
+    // a shader to set all of the values).
+    //TODO: My Nvidia card is not clearing UAVs with either Float or Uint variants.
+    const float* ClearColor = Target.GetClearColor().GetPtr();
+    m_CommandList->ClearUnorderedAccessViewFloat(Target.GetUAV(), ClearColor);
 }
 
 uint64_t CommandContext::Flush(bool WaitForCompletion)
@@ -237,6 +281,22 @@ void CommandContext::CopyBuffer( GpuResource& Dest, GpuResource& Src )
     m_CommandList->CopyResource( Dest.GetResource(), Src.GetResource() );
 }
 
+// DestOffset is in byte
+void CommandContext::CopyBufferRegion(GpuResource& Dest, size_t DestOffset, GpuResource& Src, size_t SrcOffset, size_t NumBytes)
+{
+    ASSERT(Dest.GetResource());
+    ASSERT(Src.GetResource());
+
+    D3D11_BOX SrcBox;
+    SrcBox.left = (UINT)SrcOffset;
+    SrcBox.right = (UINT)(SrcOffset + NumBytes);
+    SrcBox.top = 0;
+    SrcBox.bottom = 1;
+    SrcBox.front = 0;
+    SrcBox.back = 1;
+    m_CommandList->CopySubresourceRegion(Dest.GetResource(), 0, (UINT)DestOffset, 0, 0, Src.GetResource(), 0, &SrcBox);
+}
+
 void CommandContext::CopySubresource( GpuResource& Dest, UINT DestSubIndex, GpuResource& Src, UINT SrcSubIndex )
 {
     m_CommandList->CopySubresourceRegion( Dest.GetResource(), DestSubIndex, 0, 0, 0, Src.GetResource(), SrcSubIndex, nullptr );
@@ -299,9 +359,9 @@ void ComputeContext::SetDynamicDescriptors( UINT Offset, UINT Count, const D3D11
 }
 
 void CommandContext::SetDynamicSampler( UINT Offset, const D3D11_SAMPLER_HANDLE Handle,
-	EPipelineBind Bind )
+	BindList Binds )
 {
-	SetDynamicSamplers( Offset, 1, &Handle, { Bind } );
+	SetDynamicSamplers( Offset, 1, &Handle, Binds );
 }
 
 void CommandContext::SetDynamicSamplers( UINT Offset, UINT Count,
@@ -327,6 +387,11 @@ void ComputeContext::SetDynamicSampler( UINT Offset, const D3D11_SAMPLER_HANDLE 
 	m_CommandList->CSSetSamplers( Offset, 1, &Handle );
 }
 
+void ComputeContext::SetDynamicSamplers(UINT Offset, UINT Count, const D3D11_SAMPLER_HANDLE Handles[])
+{
+    m_CommandList->CSSetSamplers(Offset, Count, Handles);
+}
+
 void ComputeContext::SetConstantBuffers( UINT Offset, UINT Count, const D3D11_BUFFER_HANDLE Handle[] )
 {
 	m_CommandList->CSSetConstantBuffers( Offset, Count, Handle );
@@ -349,7 +414,7 @@ void CommandContext::SetConstantBuffers( UINT Offset, UINT Count,
 	}
 }
 
-void CommandContext::UpdateBuffer( D3D11_BUFFER_HANDLE Handle, const void* Data, size_t Size )
+void CommandContext::WriteResource( ID3D11Resource* Handle, const void* Data, size_t Size )
 {
 	D3D11_MAPPED_SUBRESOURCE MapData = {};
 	ASSERT_SUCCEEDED( m_CommandList->Map(
@@ -362,9 +427,9 @@ void CommandContext::UpdateBuffer( D3D11_BUFFER_HANDLE Handle, const void* Data,
 	m_CommandList->Unmap( Handle, 0 );
 }
 
-void CommandContext::SetConstants( UINT Slot, UINT NumConstants, const void * pConstants, BindList BindList )
+void CommandContext::SetConstants( UINT Slot, UINT NumConstants, const void* pConstants, BindList BindList )
 {
-	m_InternalCB.Update(pConstants, sizeof(UINT) * NumConstants );
+	m_InternalCB.Update(pConstants, sizeof(UINT)*NumConstants );
 	m_InternalCB.UploadAndBind( *this, Slot, BindList );
 }
 
@@ -485,10 +550,22 @@ void GraphicsContext::SetRenderTargets( UINT NumRTVs, const D3D11_RTV_HANDLE RTV
 }
 
 void GraphicsContext::SetRenderTarget( D3D11_RTV_HANDLE RTV, D3D11_DSV_HANDLE DSV ) {
-	SetRenderTargets( 1, &RTV, DSV );
+    D3D11_RTV_HANDLE RTVs[] = { RTV };
+    SetRenderTargets( 1, RTVs, DSV );
 }
 
-void GraphicsContext::ClearColor( ColorBuffer & Target )
+void GraphicsContext::ClearUAV( GpuBuffer& Target )
+{
+    const UINT ClearColor[4] = {};
+	m_CommandList->ClearUnorderedAccessViewUint( Target.GetUAV(), ClearColor );
+}
+
+void GraphicsContext::ClearUAV( ColorBuffer& Target )
+{
+	m_CommandList->ClearUnorderedAccessViewFloat( Target.GetUAV(), Target.GetClearColor().GetPtr() );
+}
+
+void GraphicsContext::ClearColor( ColorBuffer& Target )
 {
 	m_CommandList->ClearRenderTargetView( Target.GetRTV(), Target.GetClearColor().GetPtr() );
 }
@@ -510,6 +587,11 @@ void GraphicsContext::ClearStencil( DepthBuffer& Target )
 	m_CommandList->ClearDepthStencilView( Target.GetDSV(), D3D11_CLEAR_STENCIL, Target.GetClearDepth(), Target.GetClearStencil() );
 }
 
+void GraphicsContext::ClearStencil( DepthBuffer& Target, uint8_t Stencil )
+{
+	m_CommandList->ClearDepthStencilView( Target.GetDSV(), D3D11_CLEAR_STENCIL, Target.GetClearDepth(), Stencil );
+}
+
 void GraphicsContext::ClearDepthAndStencil( DepthBuffer& Target )
 {
 	m_CommandList->ClearDepthStencilView(Target.GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, Target.GetClearDepth(), Target.GetClearStencil() );
@@ -525,6 +607,11 @@ void GraphicsContext::SetViewportAndScissor( const D3D11_VIEWPORT& vp, const D3D
 void GraphicsContext::GenerateMips( D3D11_SRV_HANDLE SRV )
 {
 	m_CommandList->GenerateMips( SRV );
+}
+
+void GraphicsContext::ResolveSubresource( GpuResource& Dest, UINT DestSubresource, GpuResource& Src, UINT SrcSubresouce, DXGI_FORMAT Format )
+{
+    m_CommandList->ResolveSubresource( Dest.GetResource(), DestSubresource, Src.GetResource(), SrcSubresouce, Format );
 }
 
 void GraphicsContext::SetViewport( const D3D11_VIEWPORT& vp )
@@ -544,10 +631,16 @@ void GraphicsContext::SetViewport( FLOAT x, FLOAT y, FLOAT w, FLOAT h, FLOAT min
 	m_CommandList->RSSetViewports( 1, &vp );
 }
 
+// Needed to resterizer setting to enable scissor
 void GraphicsContext::SetScissor( const D3D11_RECT& rect )
 {
 	ASSERT(rect.left < rect.right && rect.top < rect.bottom);
 	m_CommandList->RSSetScissorRects( 1, &rect );
+}
+
+void GraphicsContext::SetStreamOutTargets( UINT Count, const D3D11_BUFFER_HANDLE Handle[], const UINT *pOffsets )
+{
+    m_CommandList->SOSetTargets( Count, Handle, pOffsets );
 }
 
 void GraphicsContext::SetIndexBuffer( const D3D11_INDEX_BUFFER_VIEW& Buffer )
@@ -570,13 +663,17 @@ void GraphicsContext::SetDynamicVB( UINT Slot, size_t NumVertices, size_t Vertex
 void ComputeContext::SetPipelineState( ComputePSO& PSO )
 {
 	m_PSOState = PSO.GetState();
-	m_PSOState->Bind( m_CommandList );
+    ASSERT(m_PSOState != nullptr);
+    if (m_PSOState)
+        m_PSOState->Bind( m_CommandList );
 }
 
 void GraphicsContext::SetPipelineState( GraphicsPSO& PSO )
 {
 	m_PSOState = PSO.GetState();
-	m_PSOState->Bind( m_CommandList );
+    ASSERT(m_PSOState != nullptr);
+    if (m_PSOState)
+        m_PSOState->Bind( m_CommandList );
 }
 
 #ifdef GRAPHICS_DEBUG

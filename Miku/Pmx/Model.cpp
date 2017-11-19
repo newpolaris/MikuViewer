@@ -732,7 +732,7 @@ void Model::UpdateIK(const IKAttr& ik)
 
 			if (ik.Link[k].bLimit)
 			{
-				Vector3 euler(q0.toEuler());
+				Vector3 euler(q0.Euler());
                 // due to rightHand min, max is swap needed
                 euler = Clamp( euler, ik.Link[k].MaxLimit, ik.Link[k].MinLimit );
                 q0 = Quaternion( euler.GetX(), euler.GetY(), euler.GetZ() );

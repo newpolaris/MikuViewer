@@ -1,16 +1,10 @@
-//--------------------------------------------------------------------------------
-// This file is a portion of the Hieroglyph 3 Rendering Engine.  It is distributed
-// under the MIT License, available in the root of this distribution and 
-// at the following URL:
-//
-// http://www.opensource.org/licenses/mit-license.php
-//
-// Copyright (c) Jason Zink 
-//--------------------------------------------------------------------------------
+// Use code from 'Hieroglyph 3 Rendering Engine'
+// Copyright (c) Jason Zink
 
 #pragma once
 
 #include "pch.h"
+#include "StreamOutDesc.h"
 
 enum ShaderType : uint8_t
 {
@@ -18,7 +12,8 @@ enum ShaderType : uint8_t
 	kHullShader,
 	kDomainShader,
 	kGeometryShader,
-	kPixelShader, 
+	kStreamOutShader, // GeometryShader With 'Stream Output'
+	kPixelShader,
 	kComputeShader,
 	kShaderCount,
 };
@@ -86,16 +81,16 @@ public:
 class Shader
 {
 public:
-	static std::shared_ptr<Shader> Create( ShaderType Type, const ShaderByteCode& ByteCode ); 
+    static std::shared_ptr<Shader> Create( ShaderType Type, const ShaderByteCode& ByteCode, const StreamOutEntries* StreamOut = nullptr );
 	static void DestroyAll();
-	bool ShaderCheckResource( D3D_SHADER_INPUT_TYPE inputType, UINT slot, std::string name );
-	void Bind( ID3D11DeviceContext* pContext );
 	~Shader();
+	void Bind( ID3D11DeviceContext* pContext );
+	bool ShaderCheckResource( D3D_SHADER_INPUT_TYPE inputType, UINT slot, std::string name );
 
 private:
     Shader( ShaderType Type );
     Shader( ShaderType Type, std::wstring Name );
-	void Create( const ShaderByteCode& ByteCode );
+	void Create( const ShaderByteCode& ByteCode, const StreamOutEntries* StreamOut = nullptr );
 	void FillReflection();
 
     static std::shared_ptr<Shader> Empty[kShaderCount];
@@ -106,6 +101,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3DBlob> m_Blob;
 	Microsoft::WRL::ComPtr<ID3D11DeviceChild> m_Shader;
+    Microsoft::WRL::ComPtr<ID3D11ShaderReflection> m_Reflect;
 
 	std::vector<D3D11_SIGNATURE_PARAMETER_DESC> m_InputSignatureParameters;
 	std::vector<D3D11_SIGNATURE_PARAMETER_DESC> m_OutputSignatureParameters;

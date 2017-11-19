@@ -7,6 +7,7 @@
 #include "Mapping.h"
 #include "ConstantBuffer.h"
 #include "LinearAllocator.h"
+#include <d3d12.h>
 
 class ColorBuffer;
 class DepthBuffer;
@@ -107,6 +108,15 @@ public:
 
 	static CommandContext& Begin( ContextType Type, const std::wstring ID = L"" );
 
+    void WriteBuffer( GpuResource& Dest, size_t DestOffset, const void* Data, size_t NumBytes );
+    void FillBuffer( GpuResource& Dest, size_t DestOffset, DWParam Value, size_t NumBytes );
+
+    void TransitionResource(GpuResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate = false);
+    void BeginResourceTransition(GpuResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate = false);
+    void InsertUAVBarrier(GpuResource& Resource, bool FlushImmediate = false);
+    void InsertAliasBarrier(GpuResource& Before, GpuResource& After, bool FlushImmediate = false);
+    inline void FlushResourceBarriers(void);
+
 	// Flush existing commands to the GPU but keep the context alive
 	uint64_t Flush( bool WaitForCompletion = false );
 
@@ -148,10 +158,10 @@ public:
 	void SetDynamicConstantBufferView( UINT Slot, size_t BufferSize, const void* BufferData, BindList Binds );
 	void SetDynamicDescriptor( UINT Offset, const D3D11_SRV_HANDLE Handle, BindList Binds );
 	void SetDynamicDescriptors( UINT Offset, UINT Count, const D3D11_SRV_HANDLE Handles[], BindList Binds );
-    void SetDynamicSampler( UINT Offset, const D3D11_SAMPLER_HANDLE Handle, EPipelineBind Bind );
+    void SetDynamicSampler( UINT Offset, const D3D11_SAMPLER_HANDLE Handle, BindList Binds );
     void SetDynamicSamplers( UINT Offset, UINT Count, const D3D11_SAMPLER_HANDLE Handles[], BindList Binds );
 
-	void UpdateBuffer( D3D11_BUFFER_HANDLE Handle, void const* Data, size_t Size );
+	void WriteResource( ID3D11Resource* Handle, void const* Data, size_t Size );
 
 protected:
 	CommandListManager* m_OwningManager;
@@ -186,6 +196,9 @@ protected:
 public:
     static ComputeContext& Begin(const std::wstring& ID = L"");
 
+    void ClearUAV( GpuBuffer& Target );
+    void ClearUAV( ColorBuffer& Target );
+
 	void SetPipelineState( ComputePSO& PSO );
 
 	void SetConstants( UINT Slot, UINT NumConstants, const void* pConstants );
@@ -201,6 +214,7 @@ public:
 	void SetDynamicDescriptors( UINT Offset, UINT Count, const D3D11_SRV_HANDLE Handles[] );
 	void SetDynamicDescriptors( UINT Offset, UINT Count, const D3D11_UAV_HANDLE Handles[], const UINT *pUAVInitialCounts = nullptr );
     void SetDynamicSampler( UINT Offset, const D3D11_SAMPLER_HANDLE Handle );
+    void SetDynamicSamplers( UINT Offset, UINT Count, const D3D11_SAMPLER_HANDLE Handles[] );
 
     void Dispatch( size_t GroupCountX = 1, size_t GroupCountY = 1, size_t GroupCountZ = 1 );
     void Dispatch1D( size_t ThreadCountX, size_t GroupSizeX = 64);
@@ -208,7 +222,7 @@ public:
     void Dispatch3D( size_t ThreadCountX, size_t ThreadCountY, size_t ThreadCountZ, size_t GroupSizeX, size_t GroupSizeY, size_t GroupSizeZ );
     void DispatchIndirect( GpuBuffer& ArgumentBuffer, size_t ArgumentBufferOffset = 0 );
 
-	std::shared_ptr<ComputePipelineState> m_PSOState;
+	ComputePipelineState* m_PSOState;
 };
 
 class GraphicsContext : public CommandContext
@@ -225,13 +239,17 @@ public:
 		return CommandContext::Begin(ContextType::kGraphicsContext, ID).GetGraphicsContext();
 	}
 
+    void ClearUAV( GpuBuffer& Target );
+    void ClearUAV( ColorBuffer& Target );
 	void ClearColor( ColorBuffer& Target );
 	void ClearDepth( DepthBuffer& Target );
 	void ClearDepth( DepthBuffer& Target, uint32_t Slice );
 	void ClearStencil( DepthBuffer& Target );
+	void ClearStencil( DepthBuffer& Target, uint8_t Stencil );
 	void ClearDepthAndStencil( DepthBuffer& Target );
 
 	void GenerateMips( D3D11_SRV_HANDLE SRV );
+    void ResolveSubresource( GpuResource& Dest, UINT DestSubresource, GpuResource& Src, UINT SrcSubresouce, DXGI_FORMAT Format );
 
 	void SetRenderTargets( UINT NumRTVs, const D3D11_RTV_HANDLE RTVs[] );
 	void SetRenderTargets( UINT NumRTVs, const D3D11_RTV_HANDLE RTVs[], D3D11_DSV_HANDLE DSV );
@@ -242,6 +260,7 @@ public:
 	void SetViewport( FLOAT x, FLOAT y, FLOAT w, FLOAT h, FLOAT minDepth = 0.0f, FLOAT maxDepth = 1.0f );
 	void SetScissor( const D3D11_RECT& rect );
 	void SetScissor( UINT left, UINT top, UINT right, UINT bottom );
+    void SetStreamOutTargets( UINT Offset, const D3D11_BUFFER_HANDLE Handle[], const UINT* pOffsets );
 	void SetViewportAndScissor( const D3D11_VIEWPORT& vp, const D3D11_RECT& rect );
 	void SetViewportAndScissor( UINT x, UINT y, UINT w, UINT h );
 	void SetStencilRef( UINT StencilRef );
@@ -261,7 +280,7 @@ public:
 	void DrawIndirect( GpuBuffer& ArgumentBuffer, size_t ArgumentBufferOffset = 0 );
 	void SetPipelineState( GraphicsPSO& PSO );
 
-	std::shared_ptr<GraphicsPipelineState> m_PSOState;
+	GraphicsPipelineState* m_PSOState;
 };
 
 inline void CommandContext::ClearState()

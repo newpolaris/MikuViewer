@@ -68,10 +68,6 @@ void TemporalEffects::Initialize( void )
 
 void TemporalEffects::Shutdown( void )
 {
-    s_TemporalBlendCS.Destroy();
-    s_BoundNeighborhoodCS.Destroy();
-    s_SharpenTAACS.Destroy();
-    s_ResolveTAACS.Destroy();
 }
 
 void TemporalEffects::Update( uint64_t FrameIndex )
@@ -179,12 +175,12 @@ void TemporalEffects::ApplyTemporalAA(ComputeContext& Context)
 
     Context.SetDynamicConstantBufferView(3, sizeof(cbv), &cbv);
 
-    // Context.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    // Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    // Context.TransitionResource(g_TemporalColor[Src], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    // Context.TransitionResource(g_TemporalColor[Dst], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    // Context.TransitionResource(g_LinearDepth[Src], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    // Context.TransitionResource(g_LinearDepth[Dst], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.TransitionResource(g_VelocityBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.TransitionResource(g_TemporalColor[Src], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.TransitionResource(g_TemporalColor[Dst], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    Context.TransitionResource(g_LinearDepth[Src], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.TransitionResource(g_LinearDepth[Dst], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     Context.SetDynamicDescriptor(0, g_VelocityBuffer.GetSRV());
     Context.SetDynamicDescriptor(1, g_SceneColorBuffer.GetSRV());
     Context.SetDynamicDescriptor(2, g_TemporalColor[Src].GetSRV());
@@ -199,8 +195,8 @@ void TemporalEffects::SharpenImage(ComputeContext& Context, ColorBuffer& Tempora
 {
     ScopedTimer _prof(L"Sharpen or Copy Image", Context);
 
-    // Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    // Context.TransitionResource(TemporalColor, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    Context.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    Context.TransitionResource(TemporalColor, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     Context.SetDynamicDescriptor(0, D3D11_UAV_HANDLE(nullptr));
     Context.SetDynamicDescriptor(1, D3D11_SRV_HANDLE(nullptr));
 

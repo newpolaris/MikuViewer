@@ -21,6 +21,8 @@ class ComputeContext;
 namespace PostEffects
 {
     extern BoolVar EnableFXAA;
+    extern BoolVar BloomEnable;
+    extern NumVar BloomStrength;
 
     void Initialize( void );
     void Shutdown( void );

@@ -29,6 +29,7 @@
 #include "TextureManager.h"
 #include "SamplerManager.h"
 #include "GpuTimeManager.h"
+#include "FullScreenTriangle.h"
 #include "SystemTime.h"
 #include "TemporalEffects.h"
 #include "SSAO.h"
@@ -283,8 +284,7 @@ void Graphics::Initialize( void )
 	ComPtr<ID3D11DeviceContext> pContext;
 
 #if _DEBUG
-	Microsoft::WRL::ComPtr<ID3D11Debug> debugnterface;
-
+	Microsoft::WRL::ComPtr<ID3D11Debug> debugInterface;
 #endif
 
 	// Obtain the DXGI factory
@@ -546,6 +546,7 @@ void Graphics::Initialize( void )
 	RasterizerDefault.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
 	RasterizerDefault.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
 	RasterizerDefault.DepthClipEnable = TRUE;
+    RasterizerDefault.ScissorEnable = FALSE;
 	RasterizerDefault.MultisampleEnable = FALSE;
 	RasterizerDefault.AntialiasedLineEnable = FALSE;
 
@@ -561,8 +562,8 @@ void Graphics::Initialize( void )
 	// Shadows need their own rasterizer state so we can reverse the winding of faces
 	RasterizerShadow = RasterizerDefault;
 	RasterizerShadow.CullMode = D3D11_CULL_FRONT;  // Hacked here rather than fixing the content
-	RasterizerShadow.SlopeScaledDepthBias = Math::g_ReverseZ ? -1.5f : 1.5f;
-	RasterizerShadow.DepthBias = Math::g_ReverseZ ? -100 : 100;
+	RasterizerShadow.SlopeScaledDepthBias = 2.5f * (Math::g_ReverseZ ? -1 : 1);
+	RasterizerShadow.DepthBias = 0 * (Math::g_ReverseZ ? -1 : 1);
 
 	RasterizerShadowTwoSided = RasterizerShadow;
 	RasterizerShadowTwoSided.CullMode = D3D11_CULL_NONE;
@@ -659,6 +660,7 @@ void Graphics::Initialize( void )
     // GraphRenderer::Initialize();
     // ParticleEffects::Initialize(kMaxNativeWidth, kMaxNativeHeight);
     Utility::Initialize();
+    FullScreenTriangle::Create();
 }
 
 void Graphics::Terminate( void )
@@ -671,13 +673,13 @@ void Graphics::Terminate( void )
 
 void Graphics::Shutdown( void )
 {
+    FullScreenTriangle::Clear();
 	CommandContext::DestroyAllContexts();
     g_CommandManager.Shutdown();
     GpuTimeManager::Shutdown();
 	ConvertLDRToDisplayPS.Destroy();
 	SharpeningUpsamplePS.Destroy();
-
-	s_BlendUIPSO.Destroy();
+    PSO::DestroyAll();
 
 	Shader::DestroyAll();
 	BlendState::DestroyAll();

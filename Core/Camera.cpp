@@ -18,13 +18,23 @@
 using namespace Math;
 
 #define ReverseZ_
-#ifdef ReverseZD_
-const bool Math::g_bReverseZ = true;
+#ifdef ReverseZ_
+const bool Math::g_ReverseZ = true;
 const float Math::g_ClearDepth = 0.0f;
 #else
 const bool Math::g_ReverseZ = false;
 const float Math::g_ClearDepth = 1.0f;
 #endif
+
+const Vector3& BaseCamera::GetForwardZ() const
+{
+#if LEFT
+    static const Vector3 forward( 0, 0, +1 );
+#else
+    static const Vector3 forward( 0, 0, -1 );
+#endif
+    return forward;
+}
 
 //
 // 'forward' is inverse look direction (right hand coord)

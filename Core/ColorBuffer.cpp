@@ -14,6 +14,7 @@
 #include "pch.h"
 #include "GraphicsCore.h"
 #include "ColorBuffer.h"
+#include "DirectXTex.h" // HasAlpha
 
 void ColorBuffer::CreateDerivedViews( ID3D11Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips )
 {
@@ -73,17 +74,17 @@ void ColorBuffer::CreateDerivedViews( ID3D11Device* Device, DXGI_FORMAT Format, 
 	// Create the shader resource view
 	Device->CreateShaderResourceView(Resource, &SRVDesc, m_SRVHandle.ReleaseAndGetAddressOf());
 
-	if (m_FragmentCount > 1)
-		return;
-
-	// Create the UAVs for each mip level (RWTexture2D)
-	for (uint32_t i = 0; i < kUAVSize; ++i)
-		m_UAVHandle[i].Reset();
-	for (uint32_t i = 0; i < NumMips; ++i)
-	{
-		Device->CreateUnorderedAccessView(Resource, &UAVDesc, m_UAVHandle[i].ReleaseAndGetAddressOf());
-		UAVDesc.Texture2D.MipSlice++;
-	}
+    if (m_FragmentCount == 1)
+    {
+        // Create the UAVs for each mip level (RWTexture2D)
+        for (uint32_t i = 0; i < kUAVSize; ++i)
+            m_UAVHandle[i].Reset();
+        for (uint32_t i = 0; i < NumMips; ++i)
+        {
+            Device->CreateUnorderedAccessView( Resource, &UAVDesc, m_UAVHandle[i].ReleaseAndGetAddressOf() );
+            UAVDesc.Texture2D.MipSlice++;
+        }
+    }
 }
 
 void ColorBuffer::CreateFromSwapChain( const std::wstring& Name, Microsoft::WRL::ComPtr<ID3D11Texture2D> BaseResource )
@@ -100,7 +101,7 @@ void ColorBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Hei
 	NumMips = (NumMips == 0 ? ComputeNumMips( Width, Height ) : NumMips);
 	
 	uint32_t Flags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	if (m_FragmentCount == 1)
+	if (m_FragmentCount == 1 && Format != DXGI_FORMAT_B5G6R5_UNORM)
 		Flags |= D3D11_BIND_UNORDERED_ACCESS;
 
 	TextureDesc Desc = DescribeTex2D( Width, Height, 1, NumMips, Format, Flags );
@@ -133,6 +134,14 @@ void ColorBuffer::CreateArray( const std::wstring& Name, uint32_t Width, uint32_
 	CreateArray(Name, Width, Height, ArrayCount, Format);
 }
 
+TextureDesc ColorBuffer::DescribeTex2D( uint32_t Width, uint32_t Height, uint32_t DepthOrArraySize, uint32_t NumMips, DXGI_FORMAT Format, uint32_t BindFlags )
+{
+    TextureDesc Desc = PixelBuffer::DescribeTex2D( Width, Height, DepthOrArraySize, NumMips, Format, BindFlags );
+    Desc.SampleDesc.Count =  m_FragmentCount;;
+    Desc.SampleDesc.Quality = 0;
+    return Desc;
+}
+
 void ColorBuffer::Destroy()
 {
 	m_SRVHandle.Reset();
@@ -140,4 +149,9 @@ void ColorBuffer::Destroy()
 	for (uint32_t i = 0; i < kUAVSize; ++i)
 		m_UAVHandle[i].Reset();
 	PixelBuffer::Destroy();
+}
+
+bool ColorBuffer::IsTransparent() const
+{
+    return DirectX::HasAlpha( m_Format );
 }

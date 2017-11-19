@@ -38,11 +38,14 @@ namespace Math
 		void SetTransform( const AffineTransform& xform );
 		void SetTransform( const OrthogonalTransform& xform );
 
+        const Vector3& GetForwardZ() const;
 		const Quaternion GetRotation() const { return m_CameraToWorld.GetRotation(); }
 		const Vector3 GetRightVec() const { return m_Basis.GetX(); }
 		const Vector3 GetUpVec() const { return m_Basis.GetY(); }
 		const Vector3 GetForwardVec() const { return -m_Basis.GetZ(); }
 		const Vector3 GetPosition() const { return m_CameraToWorld.GetTranslation(); }
+		float GetNearClip() const { return m_NearClip; }
+		float GetFarClip() const { return m_FarClip; }
 		float GetClearDepth() { return m_ReverseZ ? 0.0f : 1.0f; }
 		bool GetReverseZ() { return m_ReverseZ; }
 
@@ -92,6 +95,8 @@ namespace Math
 
 		Frustum m_FrustumVS;		// View-space view frustum
 		Frustum m_FrustumWS;		// World-space view frustum
+		float m_NearClip;
+		float m_FarClip;
 
 		bool m_ReverseZ;		// Invert near and far clip distances so that Z=0 is the far plane
 	};
@@ -110,8 +115,6 @@ namespace Math
 
 		float GetFOV() const { return m_VerticalFOV; }
 		float GetAspectRatio() const { return m_AspectRatio; }
-		float GetNearClip() const { return m_NearClip; }
-		float GetFarClip() const { return m_FarClip; }
 
 	private:
 
@@ -119,8 +122,6 @@ namespace Math
 
 		float m_VerticalFOV;			// Field of view angle in radians
 		float m_AspectRatio;
-		float m_NearClip;
-		float m_FarClip;
 	};
 
     inline Math::BaseCamera::BaseCamera() :

@@ -20,6 +20,7 @@
 #include "WICTextureLoader.h"
 #include "DDSTextureLoader.h"
 #include "DirectXTex.h"
+#include "LinearColor.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -33,7 +34,11 @@ using namespace Graphics;
 static UINT BytesPerPixel( DXGI_FORMAT Format )
 {
 	return (UINT)DirectX::BitsPerPixel(Format) / 8;
-};
+}
+
+Texture::Texture() : m_bTransparent(false)
+{
+}
 
 void Texture::Create( size_t Width, size_t Height, DXGI_FORMAT Format, const void* InitialData )
 {
@@ -63,6 +68,7 @@ void Texture::Create( size_t Width, size_t Height, DXGI_FORMAT Format, const voi
 	Texture.As(&m_pResource);
 
 	SetName(m_pResource, L"Texture");
+    SetProperty();
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 	SRVDesc.Format = Format;
@@ -75,7 +81,9 @@ void Texture::Create( size_t Width, size_t Height, DXGI_FORMAT Format, const voi
 
 bool Texture::CreateWICFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB )
 {
-	UINT loadFlag = sRGB ? DirectX::WIC_LOADER_FORCE_SRGB : DirectX::WIC_LOADER_DEFAULT;
+    // to support MMD texture
+    UINT sRGBFlag = Gamma::bSRGB ? DirectX::WIC_LOADER_DEFAULT : DirectX::WIC_LOADER_IGNORE_SRGB;
+	UINT loadFlag = sRGB ? DirectX::WIC_LOADER_FORCE_SRGB : sRGBFlag;
     GraphicsContext& gfxContext = GraphicsContext::Begin();
     // Load texture and generate mips at the same time
 	HRESULT hr = DirectX::CreateWICTextureFromMemoryEx(
@@ -90,14 +98,30 @@ bool Texture::CreateWICFromMemory( const void* memBuffer, size_t bufferSize, boo
 	return SUCCEEDED( hr );
 }
 
+bool Texture::CreateHDRFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB )
+{
+    using namespace DirectX;
+    ScratchImage image, mipChain;
+    HRESULT hr = DirectX::LoadFromHDRMemory( memBuffer, bufferSize, nullptr, image );
+    if (SUCCEEDED(hr))
+        hr = GenerateMipMaps( image.GetImages(), image.GetImageCount(), image.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain );
+    if (SUCCEEDED(hr))
+        hr = CreateShaderResourceViewEx( Graphics::g_Device, mipChain.GetImages(),
+            mipChain.GetImageCount(), mipChain.GetMetadata(),
+            D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE,
+            0, 0, sRGB, m_pResource.GetAddressOf(), m_SRV.GetAddressOf() );
+	return SUCCEEDED( hr );
+}
+
 bool Texture::CreateTGAFromMemory( const void* memBuffer, size_t bufferSize, bool sRGB )
 {
-    DirectX::ScratchImage image, mipChain;
+    using namespace DirectX;
+    ScratchImage image, mipChain;
     HRESULT hr = DirectX::LoadFromTGAMemory( memBuffer, bufferSize, nullptr, image );
     if (SUCCEEDED(hr))
-        hr = DirectX::GenerateMipMaps( image.GetImages(), image.GetImageCount(), image.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain );
+        hr = GenerateMipMaps( image.GetImages(), image.GetImageCount(), image.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain );
     if (SUCCEEDED(hr))
-        hr = DirectX::CreateShaderResourceViewEx( Graphics::g_Device, mipChain.GetImages(),
+        hr = CreateShaderResourceViewEx( Graphics::g_Device, mipChain.GetImages(),
             mipChain.GetImageCount(), mipChain.GetMetadata(),
             D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE,
             0, 0, sRGB, m_pResource.GetAddressOf(), m_SRV.GetAddressOf() );
@@ -114,13 +138,44 @@ bool Texture::CreateDDSFromMemory( const void* memBuffer, size_t bufferSize, boo
 
 	if (SUCCEEDED(hr))
 	{
-        // Can't generate mips error happens
+        // Can't generate mips. Fail to create resource
         //
 		// GraphicsContext& gfxContext = GraphicsContext::Begin( L"MipMap" );
 		// gfxContext.GenerateMips( SRV.Get() );
 		// gfxContext.Finish();
 	}
 	return SUCCEEDED(hr);
+}
+
+void Texture::SetProperty( void )
+{
+    using namespace DirectX;
+    if (m_pResource)
+    {
+        D3D11_RESOURCE_DIMENSION type;
+        m_pResource->GetType( &type );
+        if (type == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
+        {
+            ID3D11Texture1D* texture = (ID3D11Texture1D*)m_pResource.Get();
+            D3D11_TEXTURE1D_DESC desc;
+            texture->GetDesc( &desc );
+            m_bTransparent = HasAlpha( desc.Format );
+        }
+        else if (type == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+        {
+            ID3D11Texture2D* texture = (ID3D11Texture2D*)m_pResource.Get();
+            D3D11_TEXTURE2D_DESC desc;
+            texture->GetDesc( &desc );
+            m_bTransparent = HasAlpha( desc.Format );
+        }
+        else if (type == D3D11_RESOURCE_DIMENSION_TEXTURE3D)
+        {
+            ID3D11Texture3D* texture = (ID3D11Texture3D*)m_pResource.Get();
+            D3D11_TEXTURE3D_DESC desc;
+            texture->GetDesc( &desc );
+            m_bTransparent = HasAlpha( desc.Format );
+        }
+    }
 }
 
 namespace TextureManager
@@ -165,7 +220,7 @@ namespace TextureManager
 		return make_pair(NewTexture, true);
 	}
 
-    const Texture& GetBlackTex2D(void)
+    const ManagedTexture& GetBlackTex2D(void)
     {
         auto ManagedTex = FindOrLoadTexture(L"DefaultBlackTexture");
 
@@ -183,7 +238,7 @@ namespace TextureManager
         return *ManTex;
     }
 
-    const Texture& GetWhiteTex2D(void)
+    const ManagedTexture& GetWhiteTex2D(void)
     {
         auto ManagedTex = FindOrLoadTexture(L"DefaultWhiteTexture");
 
@@ -214,7 +269,7 @@ namespace TextureManager
             return *ManTex;
         }
 
-        uint32_t MagentaPixel = 0x00FF00FF;
+        uint32_t MagentaPixel = 0xFFFF00FF;
         ManTex->Create(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &MagentaPixel);
         return *ManTex;
     }
@@ -256,22 +311,26 @@ const ManagedTexture* TextureManager::LoadFromFile( const wstring& fileName, boo
 			Tex = LoadDDSFromFile( fileName, sRGB );
         else if ( ext == L".tga" )
 			Tex = LoadTGAFromFile( fileName, sRGB );
+        else if ( ext == L".hdr" || ext == L".exr" )
+			Tex = LoadHDRFromFile( fileName, sRGB );
         else
 			Tex = LoadWISFromFile( fileName, sRGB );
 		return Tex;
 	}
-	else
+	else // H3D format use image file that has no extension
 	{
 		const ManagedTexture* Tex = nullptr;
 		path.replace_extension( L".dds" );
         if (fs::exists(path) || fs::exists(s_RootPath/path))
-            Tex = LoadDDSFromFile( path.generic_wstring(), sRGB );
-		path.replace_extension( L".tga" );
-        if (fs::exists(path) || fs::exists(s_RootPath/path))
-            Tex = LoadTGAFromFile( path.generic_wstring(), sRGB );
-		path.replace_extension( L".png" );
-        Tex = LoadWISFromFile( path.generic_wstring(), sRGB );
-		return Tex;
+            return Tex = LoadDDSFromFile( path.generic_wstring(), sRGB );
+        path.replace_extension( L".tga" );
+        if (fs::exists( path ) || fs::exists( s_RootPath/path ))
+            return Tex = LoadTGAFromFile( path.generic_wstring(), sRGB );
+        // ommit hdr format.
+        // H3D model format expect non-null texture (valid check while texture load)
+        // so, return exist pointer
+        path.replace_extension( L".png" );
+        return Tex = LoadWISFromFile( path.generic_wstring(), sRGB );
 	}
 }
 
@@ -283,6 +342,7 @@ void ManagedTexture::SetToInvalidTexture( void )
 
 const ManagedTexture* TextureManager::LoadDDSFromFile( const wstring& fileName, bool sRGB )
 {
+    ASSERT( !s_RootPath.empty() );
 	auto ManagedTex = FindOrLoadTexture( fileName );
 
 	ManagedTexture* ManTex = ManagedTex.first;
@@ -309,9 +369,45 @@ const ManagedTexture* TextureManager::LoadDDSFromFile( const wstring& fileName, 
             ManTex->SetToInvalidTexture();
         else
             SetName( ManTex->GetResource(), fileName );
+        ManTex->SetProperty();
     });
     ManTex->SetTask( std::move( task ));
     return ManTex;
+}
+
+const ManagedTexture* TextureManager::LoadHDRFromFile( const wstring& fileName, bool sRGB )
+{
+	auto ManagedTex = FindOrLoadTexture( fileName );
+
+	ManagedTexture* ManTex = ManagedTex.first;
+	const bool RequestsLoad = ManagedTex.second;
+
+	if (!RequestsLoad)
+	{
+		ManTex->WaitForLoad();
+		return ManTex;
+	}
+
+    ManagedTexture::Task task( [=]
+    {
+        Utility::ByteArray ba = Utility::ReadFileSync( fileName );
+        if (ba->size() == 0)
+        {
+            fs::path path( s_RootPath );
+            path /= fileName;
+
+            ba = Utility::ReadFileSync( path.generic_wstring() );
+        }
+
+        if (ba->size() == 0 || !ManTex->CreateHDRFromMemory( ba->data(), ba->size(), sRGB ))
+            ManTex->SetToInvalidTexture();
+        else
+            SetName( ManTex->GetResource(), fileName );
+        ManTex->SetProperty();
+    });
+    ManTex->SetTask( std::move(task) );
+
+	return ManTex;
 }
 
 const ManagedTexture* TextureManager::LoadTGAFromFile( const wstring& fileName, bool sRGB )
@@ -342,6 +438,7 @@ const ManagedTexture* TextureManager::LoadTGAFromFile( const wstring& fileName, 
             ManTex->SetToInvalidTexture();
         else
             SetName( ManTex->GetResource(), fileName );
+        ManTex->SetProperty();
     });
     ManTex->SetTask( std::move(task) );
 
@@ -376,6 +473,7 @@ const ManagedTexture* TextureManager::LoadWISFromFile( const wstring& fileName, 
             ManTex->SetToInvalidTexture();
         else
             SetName( ManTex->GetResource(), fileName );
+        ManTex->SetProperty();
     });
     ManTex->SetTask( std::move(task) );
 
@@ -404,10 +502,14 @@ const ManagedTexture* TextureManager::LoadFromStream( const std::wstring& key, s
     {
         if (cbuf.size() == 0 ||
             !(ManTex->CreateDDSFromMemory( cbuf.data(), cbuf.size(), sRGB ) ||
-                ManTex->CreateWICFromMemory( cbuf.data(), cbuf.size(), sRGB )))
+                ManTex->CreateWICFromMemory( cbuf.data(), cbuf.size(), sRGB ) ||
+                ManTex->CreateTGAFromMemory( cbuf.data(), cbuf.size(), sRGB ) ||
+                ManTex->CreateHDRFromMemory( cbuf.data(), cbuf.size(), sRGB )
+                ))
             ManTex->SetToInvalidTexture();
         else
             SetName( ManTex->GetResource(), key );
+        ManTex->SetProperty();
     });
     ManTex->SetTask( std::move(task) );
     return ManTex;
@@ -431,10 +533,13 @@ const ManagedTexture* TextureManager::LoadFromMemory( const std::wstring& key, U
         if (ba->size() == 0 ||
             !(ManTex->CreateDDSFromMemory( ba->data(), ba->size(), sRGB ) ||
                 ManTex->CreateWICFromMemory( ba->data(), ba->size(), sRGB ) ||
-                ManTex->CreateTGAFromMemory( ba->data(), ba->size(), sRGB )))
+                ManTex->CreateTGAFromMemory( ba->data(), ba->size(), sRGB ) ||
+                ManTex->CreateHDRFromMemory( ba->data(), ba->size(), sRGB )
+                ))
             ManTex->SetToInvalidTexture();
         else
             SetName( ManTex->GetResource(), key );
+        ManTex->SetProperty();
     } );
     ManTex->SetTask( std::move(task) );
 
@@ -460,10 +565,12 @@ const ManagedTexture* TextureManager::LoadFromMemory( const std::wstring& key, s
     {
         if (size == 0 ||
             !(ManTex->CreateDDSFromMemory( cbuf.data(), size, sRGB ) ||
-                ManTex->CreateWICFromMemory( cbuf.data(), size, sRGB )))
+                ManTex->CreateWICFromMemory( cbuf.data(), size, sRGB ) ||
+                ManTex->CreateTGAFromMemory( cbuf.data(), size, sRGB )))
             ManTex->SetToInvalidTexture();
         else
             SetName( ManTex->GetResource(), key );
+        ManTex->SetProperty();
     });
     ManTex->SetTask( std::move(task) );
     return ManTex;

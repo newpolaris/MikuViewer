@@ -28,8 +28,6 @@ namespace Math
 		friend BoundingBox operator* ( const AffineTransform& xform, const BoundingBox& box );		// Slow
 		friend BoundingBox operator* ( const Matrix4& xform, const BoundingBox& box );				// Slowest (and most general)
 
-    protected:
-
         Vector3 m_Min;
         Vector3 m_Max;
     };

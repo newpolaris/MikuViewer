@@ -17,8 +17,9 @@
 #include "Color.h"
 #include "EsramAllocator.h"
 #include "Mapping.h"
+#include "IColorBuffer.h"
 
-class ColorBuffer : public PixelBuffer
+class ColorBuffer : public PixelBuffer, public IColorBuffer
 {
 public:
 	ColorBuffer( Color ClearColor = Color(0.0f, 0.0f, 0.0f, 0.0f) )
@@ -49,6 +50,8 @@ public:
 	const D3D11_SRV_HANDLE GetSRV( void ) const { return m_SRVHandle.Get(); }
 	const D3D11_RTV_HANDLE GetRTV( void ) const { return m_RTVHandle.Get(); }
 	const D3D11_UAV_HANDLE GetUAV( void ) const { return m_UAVHandle[0].Get(); }
+
+    bool IsTransparent() const;
 	
 	void SetClearColor( Color ClearColor ) { m_ClearColor = ClearColor; }
 
@@ -82,6 +85,7 @@ protected:
 	}
 
 	void CreateDerivedViews( ID3D11Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips = 1 );
+    TextureDesc DescribeTex2D( uint32_t Width, uint32_t Height, uint32_t DepthOrArraySize, uint32_t NumMips, DXGI_FORMAT Format, uint32_t BindFlags );
 
 	Color m_ClearColor;
 	static const uint32_t kUAVSize = 12;

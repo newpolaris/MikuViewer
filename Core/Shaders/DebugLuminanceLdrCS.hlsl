@@ -12,9 +12,10 @@
 //
 
 #include "ShaderUtility.hlsli"
+#include "PostEffectsRS.hlsli"
 #include "PixelPacking.hlsli"
 
-Texture2D<float3> Bloom : register(t0);
+Texture2D<float3> Bloom : register( t0 );
 #if SUPPORT_TYPED_UAV_LOADS
 RWTexture2D<float3> SrcColor : register(u0);
 #else
@@ -22,7 +23,7 @@ RWTexture2D<uint> DstColor : register(u0);
 Texture2D<float3> SrcColor : register(t2);
 #endif
 RWTexture2D<float> OutLuma : register(u1);
-SamplerState LinearSampler : register(s0);
+SamplerState LinearSampler : register( s0 );
 
 cbuffer CB0 : register(b0)
 {
@@ -30,6 +31,7 @@ cbuffer CB0 : register(b0)
     float g_BloomStrength;
 };
 
+[RootSignature(PostEffects_RootSig)]
 [numthreads( 8, 8, 1 )]
 void main( uint3 DTid : SV_DispatchThreadID )
 {

@@ -22,7 +22,7 @@ class SamplerDesc : public D3D11_SAMPLER_DESC
 public:
 	static void DestroyAll();
 
-	SamplerDesc()
+	SamplerDesc() : m_SamplerState(nullptr)
 	{
 		Filter = D3D11_FILTER_ANISOTROPIC;
 		AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -38,6 +38,8 @@ public:
 		MinLOD = 0.0f;
 		MaxLOD = D3D11_FLOAT32_MAX;
 	}
+
+    SamplerDesc( const D3D11_SAMPLER_DESC& Desc );
 
 	void SetTextureAddressMode( D3D11_TEXTURE_ADDRESS_MODE AddressMode )
 	{

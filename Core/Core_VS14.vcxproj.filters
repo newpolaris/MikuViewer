@@ -38,6 +38,9 @@
     <Filter Include="Shaders\Shadow">
       <UniqueIdentifier>{d50d1eb2-3f4d-4059-bd48-9897b2d84265}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Bloom">
+      <UniqueIdentifier>{6b6af416-da8b-4473-8f60-23b5c4d3e853}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -244,6 +247,18 @@
     <ClInclude Include="OrthographicCamera.h">
       <Filter>Source Files\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="FullScreenTriangle.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IColorBuffer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearColor.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StreamOutDesc.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -402,6 +417,18 @@
     <ClCompile Include="DepthStencilState.cpp">
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="Color.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LinearColor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FullScreenTriangle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StreamOutDesc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Math\Functions.inl">
@@ -460,6 +487,9 @@
     </None>
     <None Include="Shaders\ShadowDefine.hlsli">
       <Filter>Shaders\Shadow</Filter>
+    </None>
+    <None Include="Shaders\ToneMappingUtility.hlsli">
+      <Filter>Shaders\HDR</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -576,6 +606,63 @@
     </FxCompile>
     <FxCompile Include="Shaders\PrimitivePS.hlsl">
       <Filter>Shaders\Misc</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\FXAAPass2HDebug2CS.hlsl">
+      <Filter>Shaders\FXAA</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\FXAAPass2VDebug2CS.hlsl">
+      <Filter>Shaders\FXAA</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ToneMap2CS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ToneMapCS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ToneMapHDR2CS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ToneMapHDRCS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DebugDrawHistogramCS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DebugLuminanceHdr2CS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DebugLuminanceHdrCS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\GenerateHistogramCS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\AdaptExposureCS.hlsl">
+      <Filter>Shaders\Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\BloomExtractAndDownsampleHdrCS.hlsl">
+      <Filter>Shaders\Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\BloomExtractAndDownsampleLdrCS.hlsl">
+      <Filter>Shaders\Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DownsampleBloomAllCS.hlsl">
+      <Filter>Shaders\Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DownsampleBloomCS.hlsl">
+      <Filter>Shaders\Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ExtractLumaCS.hlsl">
+      <Filter>Shaders\Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\UpsampleAndBlurCS.hlsl">
+      <Filter>Shaders\Bloom</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\AverageLumaCS.hlsl">
+      <Filter>Shaders\HDR</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\BlurCS.hlsl">
+      <Filter>Shaders\HDR</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
