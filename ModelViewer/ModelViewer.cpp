@@ -226,8 +226,8 @@ void ModelViewer::Startup( void )
     MotionBlur::Enable = true;
     TemporalEffects::EnableTAA = true;
     FXAA::Enable = true;
-    // PostEffects::EnableHDR = true;
-    // PostEffects::EnableAdaptation = true;
+    PostEffects::EnableHDR = true;
+    PostEffects::EnableAdaptation = true;
     SSAO::Enable = true;
 
     Lighting::CreateRandomLights(m_Model.GetBoundingBox().min, m_Model.GetBoundingBox().max);
@@ -240,7 +240,7 @@ void ModelViewer::Startup( void )
 
 void ModelViewer::Cleanup( void )
 {
-	m_Model.Clear();
+    m_Model.Clear();
     Lighting::Shutdown();
 }
 
@@ -277,15 +277,15 @@ void ModelViewer::Update( float deltaT )
     // temporal AA.
     TemporalEffects::GetJitterOffset(m_MainViewport.TopLeftX, m_MainViewport.TopLeftY);
 
-	m_MainViewport.Width = (float)g_SceneColorBuffer.GetWidth();
-	m_MainViewport.Height = (float)g_SceneColorBuffer.GetHeight();
-	m_MainViewport.MinDepth = 0.0f;
-	m_MainViewport.MaxDepth = 1.0f;
+    m_MainViewport.Width = (float)g_SceneColorBuffer.GetWidth();
+    m_MainViewport.Height = (float)g_SceneColorBuffer.GetHeight();
+    m_MainViewport.MinDepth = 0.0f;
+    m_MainViewport.MaxDepth = 1.0f;
 
-	m_MainScissor.left = 0;
-	m_MainScissor.top = 0;
-	m_MainScissor.right = (LONG)g_SceneColorBuffer.GetWidth();
-	m_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
+    m_MainScissor.left = 0;
+    m_MainScissor.top = 0;
+    m_MainScissor.right = (LONG)g_SceneColorBuffer.GetWidth();
+    m_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
 }
 
 void ModelViewer::RenderObjects( GraphicsContext& gfxContext, const Matrix4& ViewProjMat, eObjectFilter Filter )
@@ -349,12 +349,12 @@ void ModelViewer::RenderLightShadows(GraphicsContext& gfxContext)
     }
     m_LightShadowTempBuffer.EndRendering(gfxContext);
 
-    // gfxContext.TransitionResource(m_LightShadowTempBuffer, D3D12_RESOURCE_STATE_GENERIC_READ);
-    // gfxContext.TransitionResource(m_LightShadowArray, D3D12_RESOURCE_STATE_COPY_DEST);
+    gfxContext.TransitionResource(m_LightShadowTempBuffer, D3D12_RESOURCE_STATE_GENERIC_READ);
+    gfxContext.TransitionResource(m_LightShadowArray, D3D12_RESOURCE_STATE_COPY_DEST);
 
     gfxContext.CopySubresource(m_LightShadowArray, LightIndex, m_LightShadowTempBuffer, 0);
 
-    // gfxContext.TransitionResource(m_LightShadowArray, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    gfxContext.TransitionResource(m_LightShadowArray, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     ++LightIndex;
 }
@@ -367,12 +367,12 @@ void ModelViewer::RenderScene( void )
         static bool EnableHDR;
         if (ShowWaveTileCounts)
         {
-            // EnableHDR = PostEffects::EnableHDR;
-            // PostEffects::EnableHDR = false;
+            EnableHDR = PostEffects::EnableHDR;
+            PostEffects::EnableHDR = false;
         }
         else
         {
-            // PostEffects::EnableHDR = EnableHDR;
+            PostEffects::EnableHDR = EnableHDR;
         }
         s_ShowLightCounts = ShowWaveTileCounts;
     }
@@ -424,10 +424,11 @@ void ModelViewer::RenderScene( void )
     {
         ScopedTimer _prof(L"Z PrePass", gfxContext);
 
-        gfxContext.SetDynamicConstantBufferView( 1, sizeof( psConstants ), &psConstants, { kBindPixel } );
+        gfxContext.SetDynamicConstantBufferView( 1, sizeof(psConstants), &psConstants, { kBindPixel } );
 
         {
             ScopedTimer _prof(L"Opaque", gfxContext);
+            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
             gfxContext.ClearDepth(g_SceneDepthBuffer);
 
 #ifdef _WAVE_OP
@@ -479,13 +480,16 @@ void ModelViewer::RenderScene( void )
         {
             ScopedTimer _prof(L"Render Color", gfxContext);
 
-            gfxContext.SetDynamicDescriptors(0, _countof(m_ExtraTextures), m_ExtraTextures, { kBindPixel } );
+            gfxContext.TransitionResource(g_SSAOFullScreen, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+            gfxContext.SetDynamicDescriptors(64, _countof(m_ExtraTextures), m_ExtraTextures, { kBindPixel } );
             gfxContext.SetDynamicConstantBufferView(0, sizeof(psConstants), &psConstants, { kBindPixel } );
 #ifdef _WAVE_OP
             gfxContext.SetPipelineState(EnableWaveOps ? m_ModelWaveOpsPSO : m_ModelPSO );
 #else
             gfxContext.SetPipelineState(ShowWaveTileCounts ? m_WaveTileCountPSO : m_ModelPSO);
 #endif
+            gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
             gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV());
             gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
 

@@ -16,6 +16,7 @@
 #include "PostEffects.h"
 #include "GameCore.h"
 #include "CommandContext.h"
+#include "RootSignature.h"
 #include "PipelineState.h"
 #include "GraphicsCore.h"
 #include "BufferManager.h"
@@ -71,8 +72,8 @@ namespace PostEffects
     const float kInitialMinLog = -12.0f;
     const float kInitialMaxLog = 4.0f;
 
-    BoolVar EnableHDR("Graphics/HDR/Enable", false);
-    BoolVar EnableAdaptation("Graphics/HDR/Adaptive Exposure", false);
+    BoolVar EnableHDR("Graphics/HDR/Enable", true);
+    BoolVar EnableAdaptation("Graphics/HDR/Adaptive Exposure", true);
     ExpVar MinExposure("Graphics/HDR/Min Exposure", 1.0f / 64.0f, -8.0f, 0.0f, 0.25f);
     ExpVar MaxExposure("Graphics/HDR/Max Exposure", 64.0f, 0.0f, 8.0f, 0.25f);
     NumVar TargetLuminance("Graphics/HDR/Key", 0.08f, 0.01f, 0.99f, 0.01f);
@@ -85,6 +86,7 @@ namespace PostEffects
     NumVar BloomUpsampleFactor("Graphics/Bloom/Scatter", 0.65f, 0.0f, 1.0f, 0.05f);	// Controls the "focus" of the blur.  High values spread out more causing a haze.
     BoolVar HighQualityBloom("Graphics/Bloom/High Quality", true);					// High quality blurs 5 octaves of bloom; low quality only blurs 3.
 
+    RootSignature PostEffectsRS;
     ComputePSO ToneMapCS;
     ComputePSO ToneMapHDRCS;
     ComputePSO ApplyBloomCS;
@@ -116,7 +118,17 @@ namespace PostEffects
 
 void PostEffects::Initialize( void )
 {
+    PostEffectsRS.Reset(4, 2);
+    PostEffectsRS.InitStaticSampler(0, SamplerLinearClampDesc);
+    PostEffectsRS.InitStaticSampler(1, SamplerLinearBorderDesc);
+    PostEffectsRS[0].InitAsConstants(0, 4);
+    PostEffectsRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4);
+    PostEffectsRS[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 4);
+    PostEffectsRS[3].InitAsConstantBuffer(1);
+    PostEffectsRS.Finalize(L"Post Effects");
+
 #define CreatePSO( ObjName, ShaderByteCode ) \
+    ObjName.SetRootSignature(PostEffectsRS); \
 	ObjName.SetComputeShader( MY_SHADER_ARGS( ShaderByteCode) ); \
     ObjName.Finalize();
 
@@ -174,6 +186,32 @@ void PostEffects::Shutdown( void )
     DepthOfField::Shutdown();
 }
 
+
+void PostEffects::BlurBuffer( ComputeContext& Context, ColorBuffer buffer[2], const ColorBuffer& lowerResBuf, float upsampleBlendFactor )
+{
+    // Set the shader constants
+    uint32_t bufferWidth = buffer[0].GetWidth();
+    uint32_t bufferHeight = buffer[0].GetHeight();
+    Context.SetConstants(0, 1.0f / bufferWidth, 1.0f / bufferHeight, upsampleBlendFactor);
+
+    // Set the input textures and output UAV
+    Context.TransitionResource(buffer[1], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    Context.SetDynamicDescriptor(0, D3D11_UAV_HANDLE(nullptr));
+    Context.SetDynamicDescriptor(1, D3D11_UAV_HANDLE(nullptr));
+    Context.SetDynamicDescriptor(0, buffer[1].GetUAV());
+    D3D11_SRV_HANDLE SRVs[2] = { buffer[0].GetSRV(), lowerResBuf.GetSRV() };
+    Context.SetDynamicDescriptors(0, 2, SRVs);
+
+    // Set the shader:  upsample and blur or just blur
+    Context.SetPipelineState(&buffer[0] == &lowerResBuf ? BlurCS : UpsampleAndBlurCS);
+
+    // Dispatch the compute shader with default 8x8 thread groups
+    Context.Dispatch2D(bufferWidth, bufferHeight);
+
+    Context.TransitionResource( buffer[1], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+}
+
+
 //--------------------------------------------------------------------------------------
 // Bloom effect in CS path
 //--------------------------------------------------------------------------------------
@@ -192,6 +230,7 @@ void PostEffects::GenerateBloom( ComputeContext& Context )
     // will be oval in appearance rather than circular.  Coincidentally, they are close to 1/2 of a 720p buffer and 1/3 of
     // 1080p.  This is a common size for a bloom buffer on consoles.
     ASSERT(kBloomWidth % 16 == 0 && kBloomHeight % 16 == 0, "Bloom buffer dimensions must be multiples of 16");
+
 
     Context.SetConstants(0, 1.0f / kBloomWidth, 1.0f / kBloomHeight, (float)BloomThreshold );
     Context.TransitionResource(g_aBloomUAV1[0], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -335,30 +374,6 @@ void PostEffects::UpdateExposure(ComputeContext& Context)
     Context.TransitionResource(g_Exposure, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 }
 
-void PostEffects::BlurBuffer( ComputeContext& Context, ColorBuffer buffer[2], const ColorBuffer& lowerResBuf, float upsampleBlendFactor )
-{
-    // Set the shader constants
-    uint32_t bufferWidth = buffer[0].GetWidth();
-    uint32_t bufferHeight = buffer[0].GetHeight();
-    Context.SetConstants(0, 1.0f / bufferWidth, 1.0f / bufferHeight, upsampleBlendFactor);
-
-    // Set the input textures and output UAV
-    Context.TransitionResource(buffer[1], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    Context.SetDynamicDescriptor(0, D3D11_UAV_HANDLE(nullptr));
-    Context.SetDynamicDescriptor(1, D3D11_UAV_HANDLE(nullptr));
-    Context.SetDynamicDescriptor(0, buffer[1].GetUAV());
-    D3D11_SRV_HANDLE SRVs[2] = { buffer[0].GetSRV(), lowerResBuf.GetSRV() };
-    Context.SetDynamicDescriptors(0, 2, SRVs);
-
-    // Set the shader:  upsample and blur or just blur
-    Context.SetPipelineState(&buffer[0] == &lowerResBuf ? BlurCS : UpsampleAndBlurCS);
-
-    // Dispatch the compute shader with default 8x8 thread groups
-    Context.Dispatch2D(bufferWidth, bufferHeight);
-
-    Context.TransitionResource( buffer[1], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-}
-
 void PostEffects::ProcessHDR( ComputeContext& Context )
 {
     ScopedTimer _prof(L"HDR Tone Mapping", Context);
@@ -452,6 +467,7 @@ void PostEffects::ProcessLDR( CommandContext& BaseContext )
 void PostEffects::CopyBackPostBuffer( ComputeContext& Context )
 {
 	ScopedTimer _prof(L"Copy Post back to Scene", Context);
+    Context.SetRootSignature(PostEffectsRS);
     Context.SetPipelineState(CopyBackPostBufferCS);
     Context.SetDynamicDescriptor(2, D3D11_SRV_HANDLE(nullptr));
     Context.SetDynamicDescriptor(0, g_SceneColorBuffer.GetUAV());
@@ -475,12 +491,19 @@ void PostEffects::Render( void )
     if (FXAA::Enable)
         FXAA::Render(Context, bGeneratedLumaBuffer);
 
+    // In the case where we've been doing post processing in a separate buffer, we need to copy it
+    // back to the original buffer.  It is possible to skip this step if the next shader knows to
+    // do the manual format decode from UINT, but there are several code paths that need to be
+    // changed, and some of them rely on texture filtering, which won't work with UINT.  Since this
+    // is only to support legacy hardware and a single buffer copy isn't that big of a deal, this
+    // is the most economical solution.
     if (!g_bTypedUAVLoadSupport_R11G11B10_FLOAT)
         CopyBackPostBuffer(Context);
 
     if (DrawHistogram)
     {
         ScopedTimer _prof(L"Draw Debug Histogram", Context);
+        Context.SetRootSignature(PostEffectsRS);
         Context.SetPipelineState(DrawHistogramCS);
         Context.InsertUAVBarrier(g_SceneColorBuffer);
         Context.TransitionResource(g_Histogram, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);

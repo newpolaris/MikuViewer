@@ -44,6 +44,9 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\3rdParty\DirectXTex\DirectXTex_Desktop_2015_Win10.vcxproj">
+      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\3rdParty\zlib-win64\ZLib_VS14.vcxproj">
       <Project>{ae5221d1-87e2-4428-8ef9-f25909c43291}</Project>
     </ProjectReference>
