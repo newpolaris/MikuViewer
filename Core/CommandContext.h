@@ -17,6 +17,7 @@ class ComputeContext;
 class Color;
 class GpuBuffer;
 class StructuredBuffer;
+class RootSignature;
 
 struct DWParam
 {
@@ -194,10 +195,12 @@ protected:
 	ComputeContext();
 
 public:
-    static ComputeContext& Begin(const std::wstring& ID = L"");
+    static ComputeContext& Begin(const std::wstring& ID = L"", bool bAsync = false );
 
     void ClearUAV( GpuBuffer& Target );
     void ClearUAV( ColorBuffer& Target );
+
+    void SetRootSignature( const RootSignature& ) {}
 
 	void SetPipelineState( ComputePSO& PSO );
 

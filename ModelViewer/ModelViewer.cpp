@@ -240,18 +240,6 @@ void ModelViewer::Startup( void )
 
 void ModelViewer::Cleanup( void )
 {
-    m_DepthPSO.Destroy();
-    m_CutoutDepthPSO.Destroy();
-    m_ModelPSO.Destroy();
-#ifdef _WAVE_OP
-    m_DepthWaveOpsPSO.Destroy();
-    m_ModelWaveOpsPSO.Destroy();
-#endif
-    m_CutoutModelPSO.Destroy();
-    m_ShadowPSO.Destroy();
-    m_CutoutShadowPSO.Destroy();
-    m_WaveTileCountPSO.Destroy();
-
 	m_Model.Clear();
     Lighting::Shutdown();
 }
@@ -433,11 +421,10 @@ void ModelViewer::RenderScene( void )
 
     RenderLightShadows(gfxContext);
 
-    /*
     {
         ScopedTimer _prof(L"Z PrePass", gfxContext);
 
-        gfxContext.SetDynamicConstantBufferView(1, sizeof(psConstants), &psConstants);
+        gfxContext.SetDynamicConstantBufferView( 1, sizeof( psConstants ), &psConstants, { kBindPixel } );
 
         {
             ScopedTimer _prof(L"Opaque", gfxContext);
@@ -459,9 +446,10 @@ void ModelViewer::RenderScene( void )
             RenderObjects(gfxContext, m_ViewProjMatrix, kCutout );
         }
     }
-    */
 
-    // SSAO::Render(gfxContext, m_Camera);
+    gfxContext.SetDepthStencilTarget( nullptr );
+    SSAO::Render(gfxContext, m_Camera);
+    gfxContext.SetDepthStencilTarget( g_SceneDepthBuffer.GetDSV() );
 
     // Lighting::FillLightGrid(gfxContext, m_Camera);
 
