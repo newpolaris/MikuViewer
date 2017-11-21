@@ -15,7 +15,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DeferredLighting.cpp" />
     <ClCompile Include="ForwardPlusLighting.cpp" />
+    <ClCompile Include="Lighting.cpp" />
     <ClCompile Include="ModelViewer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -59,8 +61,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ForwardPlusLighting.h" />
+    <ClInclude Include="Lighting.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\Lighting.hlsli" />
     <None Include="Shaders\ModelViewerRS.hlsli" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -16,6 +16,12 @@
     <ClCompile Include="ForwardPlusLighting.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DeferredLighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Lighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\ModelViewerPS.hlsl">
@@ -35,9 +41,15 @@
     <ClInclude Include="ForwardPlusLighting.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Lighting.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\ModelViewerRS.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\Lighting.hlsli">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

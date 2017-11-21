@@ -189,7 +189,7 @@ void ModelViewer::Startup( void )
     // m_WaveTileCountPSO.SetPixelShader(MY_SHADER_ARGS(g_pWaveTileCountPS) );
     m_WaveTileCountPSO.Finalize();
 
-    Lighting::InitializeResources();
+    Forward::InitializeResources();
 
     m_ExtraTextures[0] = g_SSAOFullScreen.GetSRV();
     m_ExtraTextures[1] = g_ShadowBuffer.GetSRV();
@@ -241,7 +241,7 @@ void ModelViewer::Startup( void )
 void ModelViewer::Cleanup( void )
 {
     m_Model.Clear();
-    Lighting::Shutdown();
+    Forward::Shutdown();
 }
 
 namespace Graphics
@@ -332,6 +332,7 @@ void ModelViewer::RenderObjects( GraphicsContext& gfxContext, const Matrix4& Vie
 
 void ModelViewer::RenderLightShadows(GraphicsContext& gfxContext)
 {
+    using namespace Forward;
     using namespace Lighting;
 
     ScopedTimer _prof(L"RenderLightShadows", gfxContext);
@@ -398,10 +399,10 @@ void ModelViewer::RenderScene( void )
     psConstants.sunLight = Vector3(1.0f, 1.0f, 1.0f) * m_SunLightIntensity;
     psConstants.ambientLight = Vector3(1.0f, 1.0f, 1.0f) * m_AmbientIntensity;
     psConstants.ShadowTexelSize[0] = 1.0f / g_ShadowBuffer.GetWidth();
-    psConstants.InvTileDim[0] = 1.0f / Lighting::LightGridDim;
-    psConstants.InvTileDim[1] = 1.0f / Lighting::LightGridDim;
-    psConstants.TileCount[0] = Math::DivideByMultiple(g_SceneColorBuffer.GetWidth(), Lighting::LightGridDim);
-    psConstants.TileCount[1] = Math::DivideByMultiple(g_SceneColorBuffer.GetHeight(), Lighting::LightGridDim);
+    psConstants.InvTileDim[0] = 1.0f / Forward::LightGridDim;
+    psConstants.InvTileDim[1] = 1.0f / Forward::LightGridDim;
+    psConstants.TileCount[0] = Math::DivideByMultiple(g_SceneColorBuffer.GetWidth(), Forward::LightGridDim);
+    psConstants.TileCount[1] = Math::DivideByMultiple(g_SceneColorBuffer.GetHeight(), Forward::LightGridDim);
     psConstants.FirstLightIndex[0] = Lighting::m_FirstConeLight;
     psConstants.FirstLightIndex[1] = Lighting::m_FirstConeShadowedLight;
     psConstants.FrameIndexMod2 = FrameIndex;
