@@ -97,8 +97,9 @@ float3 ApplyLightCommon(
     float nDotH = saturate(dot(halfVec, normal));
 
     FSchlick( diffuseColor, specularColor, lightDir, halfVec );
-
-    float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
+    float specularFactor = 0;
+    if (any(nDotH))
+        specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
 
     float nDotL = saturate(dot(normal, lightDir));
 
