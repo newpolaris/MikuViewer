@@ -35,7 +35,7 @@ namespace Forward
 {
     extern IntVar LightGridDim;
 
-    void InitializeResources(void);
+    void Initialize(void);
     void FillLightGrid(GraphicsContext& gfxContext, const Math::Camera& camera);
     void Shutdown(void);
 }

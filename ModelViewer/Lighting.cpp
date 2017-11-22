@@ -24,7 +24,6 @@ namespace Lighting
     Matrix4 m_LightShadowMatrix[MaxLights];
 
     void CreateRandomLights(const Vector3 minBound, const Vector3 maxBound);
-    void FillLightGrid(GraphicsContext& gfxContext, const Camera& camera);
     void Shutdown(void);
 }
 

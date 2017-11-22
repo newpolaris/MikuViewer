@@ -14,7 +14,6 @@
 // Thanks to Michal Drobot for his feedback.
 
 #include "ModelViewerRS.hlsli"
-#include "LightGrid.hlsli"
 #include "Lighting.hlsli"
 
 // outdated warning about for-loop variable scope
@@ -40,29 +39,11 @@ Texture2D<float3> texSpecular		: register(t1);
 Texture2D<float3> texNormal			: register(t3);
 //Texture2D<float4> texLightmap		: register(t4);
 //Texture2D<float4> texReflection	: register(t5);
-Texture2D<float> texSSAO			: register(t64);
 
 ByteAddressBuffer lightGrid : register(t68);
 ByteAddressBuffer lightGridBitMask : register(t69);
 
 SamplerState sampler0 : register(s0);
-
-void AntiAliasSpecular( inout float3 texNormal, inout float gloss )
-{
-    float normalLenSq = dot(texNormal, texNormal);
-    float invNormalLen = rsqrt(normalLenSq);
-    texNormal *= invNormalLen;
-    gloss = lerp(1, gloss, rcp(invNormalLen));
-}
-
-float3 ApplyAmbientLight(
-    float3	diffuse,	// Diffuse albedo
-    float	ao,			// Pre-computed ambient-occlusion
-    float3	lightColor	// Radiance of ambient light
-    )
-{
-    return ao * diffuse * lightColor;
-}
 
 [RootSignature(ModelViewer_RootSig)]
 float3 main(VSOutput vsOutput) : SV_Target0

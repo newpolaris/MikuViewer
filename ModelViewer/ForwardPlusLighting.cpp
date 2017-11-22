@@ -35,12 +35,12 @@ namespace Forward
     ComputePSO m_FillLightGridCS_24;
     ComputePSO m_FillLightGridCS_32;
 
-    void InitializeResources(void);
+    void Initialize(void);
     void FillLightGrid(GraphicsContext& gfxContext, const Camera& camera);
     void Shutdown(void);
 }
 
-void Forward::InitializeResources( void )
+void Forward::Initialize( void )
 {
 }
 

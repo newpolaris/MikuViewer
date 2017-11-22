@@ -1,3 +1,5 @@
+#include "lightGrid.hlsli"
+
 // single-iteration loop
 #pragma warning (disable: 3557)
 
@@ -13,11 +15,30 @@ cbuffer PSConstants : register(b0)
     uint4 FirstLightIndex;
 }
 
-Texture2D<float> texShadow			: register(t65);
+Texture2D<float> texSSAO : register(t64);
+Texture2D<float> texShadow : register(t65);
 StructuredBuffer<LightData> lightBuffer : register(t66);
 Texture2DArray<float> lightShadowArrayTex : register(t67);
 
 SamplerComparisonState shadowSampler : register(s1);
+
+float3 ApplyAmbientLight(
+    float3	diffuse,	// Diffuse albedo
+    float	ao,			// Pre-computed ambient-occlusion
+    float3	lightColor	// Radiance of ambient light
+    )
+{
+    return ao * diffuse * lightColor;
+}
+
+void AntiAliasSpecular( inout float3 texNormal, inout float gloss )
+{
+    float normalLenSq = dot(texNormal, texNormal);
+    float invNormalLen = rsqrt(normalLenSq);
+    texNormal *= invNormalLen;
+    gloss = lerp(1, gloss, rcp(invNormalLen));
+}
+
 
 float GetShadow( float3 ShadowCoord )
 {

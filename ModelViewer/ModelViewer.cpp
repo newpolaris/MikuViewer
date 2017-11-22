@@ -33,7 +33,10 @@
 #include "ShadowCamera.h"
 #include "PostEffects.h"
 #include "ForwardPlusLighting.h"
+#include "DeferredLighting.h"
 #include "DebugHelper.h"
+#include "PrimitiveUtility.h"
+#include <functional>
 
 // To enable wave intrinsics, uncomment this macro and #define DXIL in Core/GraphcisCore.cpp.
 // Run CompileSM6Test.bat to compile the relevant shaders with DXC.
@@ -189,7 +192,9 @@ void ModelViewer::Startup( void )
     // m_WaveTileCountPSO.SetPixelShader(MY_SHADER_ARGS(g_pWaveTileCountPS) );
     m_WaveTileCountPSO.Finalize();
 
-    Forward::InitializeResources();
+    Forward::Initialize();
+    Deferred::Initialize();
+    PrimitiveUtility::Initialize();
 
     m_ExtraTextures[0] = g_SSAOFullScreen.GetSRV();
     m_ExtraTextures[1] = g_ShadowBuffer.GetSRV();
@@ -241,7 +246,10 @@ void ModelViewer::Startup( void )
 void ModelViewer::Cleanup( void )
 {
     m_Model.Clear();
+    Lighting::Shutdown();
     Forward::Shutdown();
+    Deferred::Shutdown();
+    PrimitiveUtility::Shutdown();
 }
 
 namespace Graphics
@@ -301,6 +309,7 @@ void ModelViewer::RenderObjects( GraphicsContext& gfxContext, const Matrix4& Vie
     XMStoreFloat3(&vsConstants.viewerPos, m_Camera.GetPosition());
 
     gfxContext.SetDynamicConstantBufferView(0, sizeof(vsConstants), &vsConstants, { kBindVertex } );
+    gfxContext.SetDynamicConstantBufferView(5, sizeof(vsConstants), &vsConstants, { kBindPixel } );
 
     uint32_t materialIdx = 0xFFFFFFFFul;
 
@@ -493,13 +502,17 @@ void ModelViewer::RenderScene( void )
             gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
             gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV());
             gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
-
-            RenderObjects( gfxContext, m_ViewProjMatrix, kOpaque );
+        #define DEFFERED 1
+        #if DEFFERED
+            std::function<void(int)> call = [&](int type) { RenderObjects( gfxContext, m_ViewProjMatrix, eObjectFilter(type) ); };
+            Deferred::Render( call, gfxContext, m_Camera );
+        #else
             if (!ShowWaveTileCounts)
             {
                 gfxContext.SetPipelineState(m_CutoutModelPSO);
                 RenderObjects( gfxContext, m_ViewProjMatrix, kCutout );
             }
+        #endif
         }
     }
 

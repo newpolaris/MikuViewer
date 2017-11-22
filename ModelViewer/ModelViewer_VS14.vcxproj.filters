@@ -8,6 +8,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{2033e8dd-3e65-4e5c-b125-8e496876002c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Deferred">
+      <UniqueIdentifier>{bb09677c-1ca5-40e8-9b6e-83876dc6d24f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ModelViewer.cpp">
@@ -20,6 +23,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Lighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeometryGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PrimitiveUtility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -36,12 +45,42 @@
     <FxCompile Include="Shaders\DepthViewerPS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\ModelPrimitivePS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ModelPrimitiveVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DeferredLightingDebugPS.hlsl">
+      <Filter>Shaders\Deferred</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DeferredLightingPS.hlsl">
+      <Filter>Shaders\Deferred</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DeferredLightingVS.hlsl">
+      <Filter>Shaders\Deferred</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DeferredGBufferPS.hlsl">
+      <Filter>Shaders\Deferred</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ScreenQuadVS.hlsl">
+      <Filter>Shaders\Deferred</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ForwardPlusLighting.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Lighting.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DeferredLighting.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeometryGenerator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PrimitiveUtility.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
