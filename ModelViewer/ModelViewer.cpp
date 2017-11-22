@@ -467,7 +467,7 @@ void ModelViewer::RenderScene( void )
 
 		gfxContext.SetDynamicSamplers( 0, 2, Sampler, { kBindPixel } );
         gfxContext.ClearColor(g_SceneColorBuffer);
-        
+
 
         pfnSetupGraphicsState();
 
@@ -500,19 +500,13 @@ void ModelViewer::RenderScene( void )
             gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
             gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV_DepthReadOnly());
             gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
-        #define DEFFERED 1
-        #if DEFFERED
             std::function<void(int)> call = [&](int type) { RenderObjects( gfxContext, m_ViewProjMatrix, eObjectFilter(type) ); };
             Deferred::Render( call, gfxContext, m_Camera );
-        #else
-            if (!ShowWaveTileCounts)
-            {
-                gfxContext.SetPipelineState(m_CutoutModelPSO);
-                RenderObjects( gfxContext, m_ViewProjMatrix, kCutout );
-            }
-        #endif
         }
     }
+
+    gfxContext.SetRenderTarget(nullptr);
+    TemporalEffects::ResolveImage(gfxContext);
 
 	gfxContext.Finish();
 }

@@ -160,11 +160,10 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>..\Core;..\3rdParty\boost_1_64_0\include;..\Model</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4456</DisableSpecificWarnings>
     </ClCompile>
     <Link />
-    <Link>
-      <AdditionalLibraryDirectories>C:\Users\newpolaris\Projects\MikuViewer\3rdParty\boost_1_64_0\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
+    <Link />
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
@@ -174,11 +173,10 @@
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>..\Core;..\3rdParty\boost_1_64_0\include;..\Model</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4456</DisableSpecificWarnings>
     </ClCompile>
     <Link />
-    <Link>
-      <AdditionalLibraryDirectories>C:\Users\newpolaris\Projects\MikuViewer\3rdParty\boost_1_64_0\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
+    <Link />
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
@@ -191,11 +189,11 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>..\Core;..\3rdParty\boost_1_64_0\include;..\Model</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4456</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Users\newpolaris\Projects\MikuViewer\3rdParty\boost_1_64_0\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

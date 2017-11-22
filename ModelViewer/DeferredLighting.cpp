@@ -223,7 +223,7 @@ void Deferred::Render( std::function<void(int)> render, GraphicsContext& gfxCont
         Matrix4 InverseProjectionMatrix;
         Vector4 ScreenDimensions;
     } psScreenToView;
-    psScreenToView.InverseProjectionMatrix = Invert( ProjMatrix );
+    psScreenToView.InverseProjectionMatrix = Invert( WorldToClipMatrix );
     psScreenToView.ScreenDimensions = Vector4( g_SceneColorBuffer.GetWidth(), g_SceneColorBuffer.GetHeight(), 0, 0 );
     gfxContext.SetDynamicConstantBufferView( 3, sizeof( psScreenToView ), &psScreenToView, { kBindPixel } );
     gfxContext.SetDynamicDescriptors( 0, _countof(srvs), srvs, { kBindPixel } );
