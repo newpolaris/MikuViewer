@@ -69,49 +69,48 @@ float3 main( float4 PosHS : SV_Position ) : SV_Target
     float specularMask = SpecularMaskTexture.Load(int3(texCoord, 0));
 
     // Unpack the normal
-    float3 normal = NormalTexture.Load(int3( texCoord, 0 )) * 2 - 1;
+    float3 normal = NormalTexture.Load(int3(texCoord, 0));
+    if (any(normal))
+        normal = normal * 2 - 1;
+
     // Unpack the specular power
     float gloss = SpecularPowerTexture.Load(int3( texCoord, 0 )) * 128.0;
-    LightData lightData = lightBuffer[LightIndex];
-
     float3 specularAlbedo = float3( 0.56, 0.56, 0.56 );
-
-#define POINT_LIGHT_ARGS \
-    diffuseAlbedo, \
-    specularAlbedo, \
-    specularMask, \
-    gloss, \
-    normal, \
-    viewDir, \
-    position, \
-    lightData.pos, \
-    lightData.radiusSq, \
-    lightData.color
-
-#define CONE_LIGHT_ARGS \
-    POINT_LIGHT_ARGS, \
-    lightData.coneDir, \
-    lightData.coneAngles
-
-#define SHADOWED_LIGHT_ARGS \
-    CONE_LIGHT_ARGS, \
-    lightData.shadowTextureMatrix, \
-    LightIndex
-
-    switch (lightData.type)
+    if (LightIndex >= 0)
     {
-    case 0: // sphere
-        colorSum += ApplyPointLight( POINT_LIGHT_ARGS );
-        break;
-    case 1: // cone
-        colorSum += ApplyConeLight( CONE_LIGHT_ARGS );
-        break;
-    case 2: // cone w/ shadow map
-        colorSum += ApplyConeShadowedLight( SHADOWED_LIGHT_ARGS );
-        break;
-    }
-    if (LightIndex == -1)
-        colorSum += ApplyDirectionalLight( diffuseAlbedo, specularAlbedo, specularMask, gloss, normal, viewDir, SunDirection, SunColor, shadowCoord );
+        LightData lightData = lightBuffer[LightIndex];
 
-    return colorSum;
+    #define POINT_LIGHT_ARGS \
+        diffuseAlbedo, \
+        specularAlbedo, \
+        specularMask, \
+        gloss, \
+        normal, \
+        viewDir, \
+        position, \
+        lightData.pos, \
+        lightData.radiusSq, \
+        lightData.color
+
+    #define CONE_LIGHT_ARGS \
+        POINT_LIGHT_ARGS, \
+        lightData.coneDir, \
+        lightData.coneAngles
+
+    #define SHADOWED_LIGHT_ARGS \
+        CONE_LIGHT_ARGS, \
+        lightData.shadowTextureMatrix, \
+        LightIndex
+
+        switch (lightData.type)
+        {
+        case 0: // sphere
+            return ApplyPointLight( POINT_LIGHT_ARGS );
+        case 1: // cone
+            return ApplyConeLight( CONE_LIGHT_ARGS );
+        case 2: // cone w/ shadow map
+            return ApplyConeShadowedLight( SHADOWED_LIGHT_ARGS );
+        }
+    }
+    return ApplyDirectionalLight( diffuseAlbedo, specularAlbedo, specularMask, gloss, normal, viewDir, SunDirection, SunColor, shadowCoord );
 }

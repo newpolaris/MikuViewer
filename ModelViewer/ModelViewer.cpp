@@ -62,9 +62,8 @@ using namespace Math;
 class ModelViewer : public GameCore::IGameApp
 {
 public:
-	ModelViewer()
-	{
-	}
+
+    ModelViewer( void ) {}
 
 	virtual void Startup( void ) override;
 	virtual void Cleanup( void ) override;
@@ -113,10 +112,9 @@ ExpVar m_SunLightIntensity("Application/Lighting/Sun Light Intensity", 4.0f, 0.0
 ExpVar m_AmbientIntensity("Application/Lighting/Ambient Intensity", 0.1f, -16.0f, 16.0f, 0.1f);
 NumVar m_SunOrientation("Application/Lighting/Sun Orientation", -0.5f, -100.0f, 100.0f, 0.1f );
 NumVar m_SunInclination("Application/Lighting/Sun Inclination", 0.75f, 0.0f, 1.0f, 0.01f );
-NumVar m_ShadowDimX("Application/Lighting/Shadow Dim X", 5000, 1000, 10000, 100 );
-NumVar m_ShadowDimY("Application/Lighting/Shadow Dim Y", 3000, 1000, 10000, 100 );
-NumVar m_ShadowDimZ("Application/Lighting/Shadow Dim Z", 3000, 1000, 10000, 100 );
-NumVar m_ShadowPosY("Application/Lighting/Shadow Pos Y", -500, -5000, 5000, 50 );
+NumVar ShadowDimX("Application/Lighting/Shadow Dim X", 5000, 1000, 10000, 100 );
+NumVar ShadowDimY("Application/Lighting/Shadow Dim Y", 3000, 1000, 10000, 100 );
+NumVar ShadowDimZ("Application/Lighting/Shadow Dim Z", 3000, 1000, 10000, 100 );
 
 BoolVar ShowWaveTileCounts("Application/Forward+/Show Wave Tile Counts", false);
 #ifdef _WAVE_OP
@@ -230,7 +228,7 @@ void ModelViewer::Startup( void )
 
     MotionBlur::Enable = true;
     TemporalEffects::EnableTAA = true;
-    FXAA::Enable = true;
+    FXAA::Enable = false;
     PostEffects::EnableHDR = true;
     PostEffects::EnableAdaptation = true;
     SSAO::Enable = true;
@@ -416,7 +414,7 @@ void ModelViewer::RenderScene( void )
     psConstants.FirstLightIndex[1] = Lighting::m_FirstConeShadowedLight;
     psConstants.FrameIndexMod2 = FrameIndex;
 
-    D3D11_SAMPLER_HANDLE Sampler[] = { m_DefaultSampler, SamplerShadowGE };
+    D3D11_SAMPLER_HANDLE Sampler[] = { m_DefaultSampler, SamplerShadow };
     gfxContext.SetDynamicSamplers( 0, 2, Sampler, { kBindPixel } );
 
     // Set the default state for command lists
@@ -460,7 +458,6 @@ void ModelViewer::RenderScene( void )
 
     gfxContext.SetDepthStencilTarget( nullptr );
     SSAO::Render(gfxContext, m_Camera);
-    gfxContext.SetDepthStencilTarget( g_SceneDepthBuffer.GetDSV() );
 
     // Lighting::FillLightGrid(gfxContext, m_Camera);
 
@@ -468,15 +465,16 @@ void ModelViewer::RenderScene( void )
     {
         ScopedTimer _prof(L"Main Render", gfxContext);
 
+		gfxContext.SetDynamicSamplers( 0, 2, Sampler, { kBindPixel } );
         gfxContext.ClearColor(g_SceneColorBuffer);
-        gfxContext.ClearDepth(g_SceneDepthBuffer);
+        
 
         pfnSetupGraphicsState();
 
         {
             ScopedTimer _prof(L"Render Shadow Map", gfxContext);
 
-            m_SunShadow.UpdateMatrix(-m_SunDirection, Vector3(0, m_ShadowPosY, 0), Vector3(m_ShadowDimX, m_ShadowDimY, m_ShadowDimZ),
+            m_SunShadow.UpdateMatrix(-m_SunDirection, Vector3(0, -500.0f, 0), Vector3(ShadowDimX, ShadowDimY, ShadowDimZ),
                 (uint32_t)g_ShadowBuffer.GetWidth(), (uint32_t)g_ShadowBuffer.GetHeight(), 16);
 
             g_ShadowBuffer.BeginRendering(gfxContext);
@@ -500,7 +498,7 @@ void ModelViewer::RenderScene( void )
             gfxContext.SetPipelineState(ShowWaveTileCounts ? m_WaveTileCountPSO : m_ModelPSO);
 #endif
             gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV());
+            gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV_DepthReadOnly());
             gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
         #define DEFFERED 1
         #if DEFFERED
