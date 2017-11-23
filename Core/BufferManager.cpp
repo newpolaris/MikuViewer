@@ -112,8 +112,8 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 
     esram.PushStack();
 
-        g_SceneColorBuffer.Create( L"Main Color Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R11G11B10_FLOAT, esram );
-        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R11G11B10_FLOAT );
+        g_SceneColorBuffer.Create( L"Main Color Buffer", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat, esram );
+        g_VelocityBuffer.Create( L"Motion Vectors", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat );
         g_PostEffectsBuffer.Create( L"Post Effects Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R32_UINT );
         g_PostEffectsBufferTyped.Create( L"Post Effects Buffer", bufferWidth, bufferHeight, 1, DefaultHdrColorFormat );
 

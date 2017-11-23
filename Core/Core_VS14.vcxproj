@@ -272,6 +272,14 @@
     <FxCompile Include="Shaders\FXAAResolveWorkQueueCS.hlsl" />
     <FxCompile Include="Shaders\GenerateHistogramCS.hlsl" />
     <FxCompile Include="Shaders\LinearizeDepthCS.hlsl" />
+    <FxCompile Include="Shaders\MotionBlur.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="Shaders\MotionBlurFinalPassCS.hlsl" />
     <FxCompile Include="Shaders\MotionBlurFinalPassPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

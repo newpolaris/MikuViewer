@@ -228,7 +228,7 @@ void ModelViewer::Startup( void )
     m_CameraController.reset(new CameraController(m_Camera, Vector3(kYUnitVector)));
 
     MotionBlur::Enable = true;
-    TemporalEffects::EnableTAA = true;
+    TemporalEffects::EnableTAA = false;
     FXAA::Enable = false;
     PostEffects::EnableHDR = true;
     PostEffects::EnableAdaptation = true;
@@ -525,5 +525,4 @@ void ModelViewer::RenderScene( void )
 
 void ModelViewer::RenderUI( GraphicsContext& Context )
 {
-    Utility::DebugTexture( Context, g_VelocityBuffer.GetSRV() );
 }

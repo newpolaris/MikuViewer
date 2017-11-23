@@ -23,6 +23,7 @@
 
 #include "CompiledShaders/ScreenQuadVS.h"
 #include "CompiledShaders/MotionVector.h"
+#include "CompiledShaders/MotionBlur.h"
 
 using namespace Graphics;
 using namespace Math;
@@ -37,13 +38,18 @@ namespace MotionBlur
 	ComputePSO s_MotionBlurFinalPassCS;
 	GraphicsPSO s_MotionBlurFinalPassPS;
 	ComputePSO s_CameraVelocityCS[2];
+    // Test
     ComputePSO s_CameraVelocityPSO;
+    ComputePSO s_CameraBlurPSO;
 }
 
 void MotionBlur::Initialize( void )
 {
     s_CameraVelocityPSO.SetComputeShader(MY_SHADER_ARGS(g_pMotionVector));
     s_CameraVelocityPSO.Finalize();
+
+    s_CameraBlurPSO.SetComputeShader(MY_SHADER_ARGS(g_pMotionBlur));
+    s_CameraBlurPSO.Finalize();
 }
 
 void MotionBlur::Shutdown( void )
@@ -73,7 +79,7 @@ void MotionBlur::GenerateCameraVelocityBuffer( CommandContext& BaseContext, cons
         Vector4 ScreenDimensions;
     } csScreenToView;
     csScreenToView.Reprojection = reprojectionMatrix;
-    csScreenToView.ScreenDimensions = Vector4( float(g_SceneColorBuffer.GetWidth()), float(g_SceneColorBuffer.GetHeight()), 0, 0 );
+    csScreenToView.ScreenDimensions = Vector4( float(Width), float(Height), 0, 0 );
     ComputeContext& Context = BaseContext.GetComputeContext();
     Context.SetDynamicConstantBufferView( 0, sizeof(csScreenToView), &csScreenToView );
     Context.SetPipelineState( s_CameraVelocityPSO );
@@ -83,6 +89,21 @@ void MotionBlur::GenerateCameraVelocityBuffer( CommandContext& BaseContext, cons
     Context.SetDynamicDescriptor( 0, UAV_NULL );
 }
 
-void MotionBlur::RenderObjectBlur( CommandContext& Context, ColorBuffer& velocityBuffer )
+void MotionBlur::RenderObjectBlur( CommandContext& BaseContext, ColorBuffer& velocityBuffer )
 {
+    ScopedTimer _prof(L"MotionBlur", BaseContext);
+
+    uint32_t Width = g_SceneColorBuffer.GetWidth();
+    uint32_t Height = g_SceneColorBuffer.GetHeight();
+
+    Vector4 screenDimensions = Vector4( float(g_SceneColorBuffer.GetWidth()), float(g_SceneColorBuffer.GetHeight()), 0, 0 );
+    ComputeContext& Context = BaseContext.GetComputeContext();
+    Context.SetDynamicConstantBufferView( 0, sizeof(screenDimensions), &screenDimensions );
+    Context.SetPipelineState( s_CameraBlurPSO );
+    Context.SetDynamicDescriptor( 0, g_VelocityBuffer.GetSRV() );
+    Context.SetDynamicDescriptor( 1, g_SceneColorBuffer.GetSRV() );
+    Context.SetDynamicDescriptor( 0, g_PostEffectsBufferTyped.GetUAV() );
+    Context.Dispatch2D( Width, Height );
+    Context.SetDynamicDescriptor( 0, UAV_NULL );
+    BaseContext.CopyBuffer( g_SceneColorBuffer, g_PostEffectsBufferTyped );
 }
