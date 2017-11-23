@@ -709,5 +709,8 @@
     <FxCompile Include="Shaders\DebugSSAOCS.hlsl">
       <Filter>Shaders\SSAO</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\MotionVector.hlsl">
+      <Filter>Shaders\MotionBlur</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

@@ -70,6 +70,7 @@ public:
 
 	virtual void Update( float deltaT ) override;
 	virtual void RenderScene( void ) override;
+    virtual void RenderUI( GraphicsContext& Context ) override;
 
 private:
 
@@ -504,9 +505,25 @@ void ModelViewer::RenderScene( void )
             Deferred::Render( call, gfxContext, m_Camera );
         }
     }
-
     gfxContext.SetRenderTarget(nullptr);
+
+    // Some systems generate a per-pixel velocity buffer to better track dynamic and skinned meshes.  Everything
+    // is static in our scene, so we generate velocity from camera motion and the depth buffer.  A velocity buffer
+    // is necessary for all temporal effects (and motion blur).
+    MotionBlur::GenerateCameraVelocityBuffer(gfxContext, m_Camera, true);
+
     TemporalEffects::ResolveImage(gfxContext);
 
+    // Until I work out how to couple these two, it's "either-or".
+    if (DepthOfField::Enable)
+        DepthOfField::Render(gfxContext, m_Camera.GetNearClip(), m_Camera.GetFarClip());
+    else
+        MotionBlur::RenderObjectBlur(gfxContext, g_VelocityBuffer);
+
 	gfxContext.Finish();
+}
+
+void ModelViewer::RenderUI( GraphicsContext& Context )
+{
+    Utility::DebugTexture( Context, g_VelocityBuffer.GetSRV() );
 }

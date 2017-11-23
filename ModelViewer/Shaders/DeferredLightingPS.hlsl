@@ -3,7 +3,7 @@
 SamplerState linearRepeat : register(s0);
 SamplerState linearClamp : register(s1);
 
-// Parameters required to convert screen space coordinates to view space params.
+// Parameters required to convert screen space coordinates to world space params.
 cbuffer ScreenToViewParams : register(b3)
 {
     float4x4 InverseWorldToClip;
@@ -32,7 +32,7 @@ Texture2D<float > SpecularMaskTexture : register(t3);
 // The depth from the screen space texture.
 Texture2D<float> DepthTexture : register(t4);
 
-// Convert clip space coordinates to view space
+// Convert clip space coordinates to world space
 float4 ClipToWorld( float4 clip )
 {
     // View space position.
@@ -41,7 +41,7 @@ float4 ClipToWorld( float4 clip )
     return world / world.w;
 }
 
-// Convert screen space coordinates to view space.
+// Convert screen space coordinates to world space.
 float4 ScreenToWorld( float4 screen )
 {
     // Convert to normalized texture coordinates
