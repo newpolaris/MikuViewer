@@ -1,12 +1,12 @@
 # MIKU.VIEWER
 
-## MikuMikuDance(MMD) viewer
-Current target file portmat: PMD(PolygonMoDel), VMD
+## MMD Viewer
+- [Mikudayo](https://githu1b.com/newpolaris/Mikudayo)
 
-### Acknowledgements
-* [MMD.js](https://github.com/edvakf/MMD.js)
-* [zerogram.info](http://zerogram.info)
+## Model Viewer
+- Deferred rendering
+- Crytek Sponza Scene (./Screenshots/Sponza.jpg)
+- Little slower than original one (Forward+)
 
-## DX11 Engine based on MiniEngine
-[MiniEngine](https://github.com/Microsoft/DirectX-Graphics-Samples/)
-Current engine porting target: [Update readme.md](https://github.com/Microsoft/DirectX-Graphics-Samples/) (Apr 21, 2017)
+### DIRECTX 11.1
+- Ported from [MiniEngine](https://github.com/Microsoft/DirectX-Graphics-Samples/) DIRECTX 12
