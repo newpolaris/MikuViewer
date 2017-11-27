@@ -1,8 +1,12 @@
-# DX11 Engine based on MiniEngine
+# MIKU.VIEWER
 
-## MiniEngine
-https://github.com/Microsoft/DirectX-Graphics-Samples/
+## MMD Viewer
+- [Mikudayo](https://githu1b.com/newpolaris/Mikudayo)
 
-## Current target
-Apr 21, 2017 "Update readme.md"
-https://github.com/Microsoft/DirectX-Graphics-Samples/tree/1525d3cc2cafcb49cb579e617a7b18fcead920e8
+## Model Viewer
+- Deferred rendering
+- Crytek Sponza Scene (./Screenshots/Sponza.jpg)
+- Little slower than original one (Forward+)
+
+### DIRECTX 11.1
+- Ported from [MiniEngine](https://github.com/Microsoft/DirectX-Graphics-Samples/) DIRECTX 12

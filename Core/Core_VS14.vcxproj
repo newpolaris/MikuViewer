@@ -1,0 +1,429 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Profile|x64">
+      <Configuration>Profile</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Archive.h" />
+    <ClInclude Include="BlendState.h" />
+    <ClInclude Include="BufferManager.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraController.h" />
+    <ClInclude Include="Color.h" />
+    <ClInclude Include="ColorBuffer.h" />
+    <ClInclude Include="CommandContext.h" />
+    <ClInclude Include="CommandListManager.h" />
+    <ClInclude Include="ConstantBuffer.h" />
+    <ClInclude Include="dds.h" />
+    <ClInclude Include="DebugHelper.h" />
+    <ClInclude Include="DepthBuffer.h" />
+    <ClInclude Include="DepthOfField.h" />
+    <ClInclude Include="DepthStencilState.h" />
+    <ClInclude Include="Encoding.h" />
+    <ClInclude Include="EngineProfiling.h" />
+    <ClInclude Include="EngineTuning.h" />
+    <ClInclude Include="EsramAllocator.h" />
+    <ClInclude Include="FileUtility.h" />
+    <ClInclude Include="FullScreenTriangle.h" />
+    <ClInclude Include="FXAA.h" />
+    <ClInclude Include="GameInput.h" />
+    <ClInclude Include="GpuTimeManager.h" />
+    <ClInclude Include="GraphRenderer.h" />
+    <ClInclude Include="IColorBuffer.h" />
+    <ClInclude Include="LinearAllocator.h" />
+    <ClInclude Include="LinearColor.h" />
+    <ClInclude Include="LoaderHelpers.h" />
+    <ClInclude Include="Mapping.h" />
+    <ClInclude Include="GameCore.h" />
+    <ClInclude Include="GpuBuffer.h" />
+    <ClInclude Include="GpuResource.h" />
+    <ClInclude Include="GraphicsCore.h" />
+    <ClInclude Include="Hash.h" />
+    <ClInclude Include="InputLayout.h" />
+    <ClInclude Include="Math\BoundingBox.h" />
+    <ClInclude Include="Math\DualQuaternion.h" />
+    <ClInclude Include="Math\Functions.h" />
+    <ClInclude Include="MotionBlur.h" />
+    <ClInclude Include="OrthographicCamera.h" />
+    <ClInclude Include="PostEffects.h" />
+    <ClInclude Include="RasterizerState.h" />
+    <ClInclude Include="RootSignature.h" />
+    <ClInclude Include="SamplerManager.h" />
+    <ClInclude Include="ShadowBuffer.h" />
+    <ClInclude Include="ShadowCamera.h" />
+    <ClInclude Include="SSAO.h" />
+    <ClInclude Include="StreamOutDesc.h" />
+    <ClInclude Include="SystemTime.h" />
+    <ClInclude Include="TemporalEffects.h" />
+    <ClInclude Include="TextRenderer.h" />
+    <ClInclude Include="TextureManager.h" />
+    <ClInclude Include="TextUtility.h" />
+    <ClInclude Include="VectorMath.h" />
+    <ClInclude Include="Math\BoundingPlane.h" />
+    <ClInclude Include="Math\BoundingSphere.h" />
+    <ClInclude Include="Math\Common.h" />
+    <ClInclude Include="Math\Frustum.h" />
+    <ClInclude Include="Math\Matrix3.h" />
+    <ClInclude Include="Math\Matrix4.h" />
+    <ClInclude Include="Math\Quaternion.h" />
+    <ClInclude Include="Math\Random.h" />
+    <ClInclude Include="Math\Scalar.h" />
+    <ClInclude Include="Math\Transform.h" />
+    <ClInclude Include="Math\Vector.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="PipelineState.h" />
+    <ClInclude Include="PixelBuffer.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="Utility.h" />
+    <ClInclude Include="WICTextureLoader.h" />
+    <ClInclude Include="Zip.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Archive.cpp" />
+    <ClCompile Include="BlendState.cpp" />
+    <ClCompile Include="BufferManager.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CameraController.cpp" />
+    <ClCompile Include="Color.cpp" />
+    <ClCompile Include="ColorBuffer.cpp" />
+    <ClCompile Include="CommandContext.cpp" />
+    <ClCompile Include="CommandListManager.cpp" />
+    <ClCompile Include="DDSTextureLoader.cpp" />
+    <ClCompile Include="DebugHelper.cpp" />
+    <ClCompile Include="DepthBuffer.cpp" />
+    <ClCompile Include="DepthOfField.cpp" />
+    <ClCompile Include="DepthStencilState.cpp" />
+    <ClCompile Include="Encoding.cpp" />
+    <ClCompile Include="EngineProfiling.cpp" />
+    <ClCompile Include="EngineTuning.cpp" />
+    <ClCompile Include="FileUtility.cpp" />
+    <ClCompile Include="FullScreenTriangle.cpp" />
+    <ClCompile Include="FXAA.cpp" />
+    <ClCompile Include="GameCore.cpp" />
+    <ClCompile Include="GameInput.cpp" />
+    <ClCompile Include="GpuBuffer.cpp" />
+    <ClCompile Include="GpuTimeManager.cpp" />
+    <ClCompile Include="GraphicsCore.cpp" />
+    <ClCompile Include="GraphRenderer.cpp" />
+    <ClCompile Include="InputLayout.cpp" />
+    <ClCompile Include="LinearAllocator.cpp" />
+    <ClCompile Include="LinearColor.cpp" />
+    <ClCompile Include="Math\BoundingSphere.cpp" />
+    <ClCompile Include="Math\DualQuaternion.cpp" />
+    <ClCompile Include="Math\Frustum.cpp" />
+    <ClCompile Include="Math\Functions.cpp" />
+    <ClCompile Include="Math\Quaternion.cpp" />
+    <ClCompile Include="Math\Random.cpp" />
+    <ClCompile Include="MotionBlur.cpp" />
+    <ClCompile Include="OrthographicCamera.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="PipelineState.cpp" />
+    <ClCompile Include="PixelBuffer.cpp" />
+    <ClCompile Include="PostEffects.cpp" />
+    <ClCompile Include="RasterizerState.cpp" />
+    <ClCompile Include="RootSignature.cpp" />
+    <ClCompile Include="SamplerManager.cpp" />
+    <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="ShadowBuffer.cpp" />
+    <ClCompile Include="ShadowCamera.cpp" />
+    <ClCompile Include="SSAO.cpp" />
+    <ClCompile Include="StreamOutDesc.cpp" />
+    <ClCompile Include="SystemTime.cpp" />
+    <ClCompile Include="TemporalEffects.cpp" />
+    <ClCompile Include="TextRenderer.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
+    <ClCompile Include="TextUtility.cpp" />
+    <ClCompile Include="Utility.cpp" />
+    <ClCompile Include="WICTextureLoader.cpp" />
+    <ClCompile Include="Zip.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Math\Functions.inl" />
+    <None Include="Shaders\AoBlurAndUpsampleCS.hlsli" />
+    <None Include="Shaders\AoRenderCS.hlsli" />
+    <None Include="Shaders\ColorSpaceUtility.hlsli" />
+    <None Include="Shaders\FXAAPass1CS.hlsli" />
+    <None Include="Shaders\FXAAPass2CS.hlsli" />
+    <None Include="Shaders\FXAAPS.hlsli" />
+    <None Include="Shaders\FXAARootSignature.hlsli" />
+    <None Include="Shaders\MotionBlurRS.hlsli" />
+    <None Include="Shaders\PCFKernels.hlsli" />
+    <None Include="Shaders\PixelPacking.hlsli" />
+    <None Include="Shaders\PixelPacking_LUV.hlsli" />
+    <None Include="Shaders\PixelPacking_R11G11B10.hlsli" />
+    <None Include="Shaders\PixelPacking_RGBE.hlsli" />
+    <None Include="Shaders\PixelPacking_RGBM.hlsli" />
+    <None Include="Shaders\PixelPacking_Velocity.hlsli" />
+    <None Include="Shaders\ShaderUtility.hlsli" />
+    <None Include="Shaders\Shadow.hlsli" />
+    <None Include="Shaders\ShadowDefine.hlsli" />
+    <None Include="Shaders\TemporalRS.hlsli" />
+    <None Include="Shaders\TextRS.hlsli" />
+    <None Include="Shaders\ToneMappingUtility.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\AdaptExposureCS.hlsl" />
+    <FxCompile Include="Shaders\AoBlurUpsampleBlendOutCS.hlsl" />
+    <FxCompile Include="Shaders\AoBlurUpsampleCS.hlsl" />
+    <FxCompile Include="Shaders\AoBlurUpsamplePreMinBlendOutCS.hlsl" />
+    <FxCompile Include="Shaders\AoBlurUpsamplePreMinCS.hlsl" />
+    <FxCompile Include="Shaders\AoPrepareDepthBuffers1CS.hlsl" />
+    <FxCompile Include="Shaders\AoPrepareDepthBuffers2CS.hlsl" />
+    <FxCompile Include="Shaders\AoRender1CS.hlsl" />
+    <FxCompile Include="Shaders\AoRender2CS.hlsl" />
+    <FxCompile Include="Shaders\ApplyBloom2CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\ApplyBloom3CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\ApplyBloomCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\AverageLumaCS.hlsl" />
+    <FxCompile Include="Shaders\BloomExtractAndDownsampleHdrCS.hlsl" />
+    <FxCompile Include="Shaders\BloomExtractAndDownsampleLdrCS.hlsl" />
+    <FxCompile Include="Shaders\BlurCS.hlsl" />
+    <FxCompile Include="Shaders\BoundNeighborhoodCS.hlsl" />
+    <FxCompile Include="Shaders\BufferCopyPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\CameraMotionBlurPrePassCS.hlsl" />
+    <FxCompile Include="Shaders\CameraMotionBlurPrePassLinearZCS.hlsl" />
+    <FxCompile Include="Shaders\CameraVelocityCS.hlsl" />
+    <FxCompile Include="Shaders\ConvertLDRToDisplayPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\CopyBackPostBufferCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\DebugDrawHistogramCS.hlsl" />
+    <FxCompile Include="Shaders\DebugLuminanceHdr2CS.hlsl" />
+    <FxCompile Include="Shaders\DebugLuminanceHdrCS.hlsl" />
+    <FxCompile Include="Shaders\DebugLuminanceLdr2CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\DebugLuminanceLdrCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\DebugSSAOCS.hlsl" />
+    <FxCompile Include="Shaders\DebugTexturePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\DownsampleBloomAllCS.hlsl" />
+    <FxCompile Include="Shaders\DownsampleBloomCS.hlsl" />
+    <FxCompile Include="Shaders\ExtractLumaCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass1_Luma2_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass1_Luma_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass1_RGB2_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass1_RGB_CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2H2CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2HCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2HDebug2CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2HDebugCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2V2CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2VCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2VDebug2CS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPass2VDebugCS.hlsl" />
+    <FxCompile Include="Shaders\FXAAPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\FXAAResolveWorkQueueCS.hlsl" />
+    <FxCompile Include="Shaders\GenerateHistogramCS.hlsl" />
+    <FxCompile Include="Shaders\LinearizeDepthCS.hlsl" />
+    <FxCompile Include="Shaders\MotionBlur.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\MotionBlurFinalPassCS.hlsl" />
+    <FxCompile Include="Shaders\MotionBlurFinalPassPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\MotionBlurPrePassCS.hlsl" />
+    <FxCompile Include="Shaders\MotionVector.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\PrimitivePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\PrimitiveVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\ResolveTAACS.hlsl" />
+    <FxCompile Include="Shaders\ScreenQuadVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\SharpeningUpsamplePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\SharpenTAACS.hlsl" />
+    <FxCompile Include="Shaders\TemporalBlendCS.hlsl" />
+    <FxCompile Include="Shaders\TextAntialiasPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\TextShadowPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\TextVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\ToneMap2CS.hlsl" />
+    <FxCompile Include="Shaders\ToneMapCS.hlsl" />
+    <FxCompile Include="Shaders\ToneMapHDR2CS.hlsl" />
+    <FxCompile Include="Shaders\ToneMapHDRCS.hlsl" />
+    <FxCompile Include="Shaders\UpsampleAndBlurCS.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\3rdParty\DirectXTex\DirectXTex_Desktop_2015_Win10.vcxproj">
+      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{AB949DFB-5AFF-432F-AC31-73BD1C61B8A6}</ProjectGuid>
+    <RootNamespace>Core</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <ProjectName>Core</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheets\VS14.props" />
+    <Import Project="..\PropertySheets\Debug.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheets\VS14.props" />
+    <Import Project="..\PropertySheets\Profile.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheets\VS14.props" />
+    <Import Project="..\PropertySheets\Release.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>false</SDLCheck>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\3rdParty\zlib-win64;$(SolutionDir)..\3rdParty\DirectXTex;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
+    <ClCompile>
+      <SDLCheck>false</SDLCheck>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\3rdParty\zlib-win64;$(SolutionDir)..\3rdParty\DirectXTex;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\3rdParty\zlib-win64;$(SolutionDir)..\3rdParty\DirectXTex;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
