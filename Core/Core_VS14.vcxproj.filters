@@ -342,9 +342,6 @@
     <ClCompile Include="GameInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MotionBlur.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>
@@ -437,6 +434,9 @@
     </ClCompile>
     <ClCompile Include="RootSignature.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionBlur.cpp">
+      <Filter>Source Files\Graphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -708,6 +708,12 @@
     </FxCompile>
     <FxCompile Include="Shaders\DebugSSAOCS.hlsl">
       <Filter>Shaders\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\MotionVector.hlsl">
+      <Filter>Shaders\MotionBlur</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\MotionBlur.hlsl">
+      <Filter>Shaders\MotionBlur</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
