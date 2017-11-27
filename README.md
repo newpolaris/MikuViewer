@@ -5,7 +5,8 @@
 
 ## Model Viewer
 - Deferred rendering
-- Crytek Sponza Scene (./Screenshots/Sponza.jpg)
+- Crytek Sponza Scene
+[![link text](./Screenshots/Sponza.jpg)](./Screenshots/Sponza.png)
 - Little slower than original one (Forward+)
 
 ### DIRECTX 11.1
