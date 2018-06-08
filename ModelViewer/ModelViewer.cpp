@@ -227,12 +227,13 @@ void ModelViewer::Startup( void )
     m_Camera.SetZRange( 1.0f, 10000.0f );
     m_CameraController.reset(new CameraController(m_Camera, Vector3(kYUnitVector)));
 
-    MotionBlur::Enable = true;
+    MotionBlur::Enable = false;
     TemporalEffects::EnableTAA = false;
     FXAA::Enable = false;
     PostEffects::EnableHDR = true;
     PostEffects::EnableAdaptation = true;
     SSAO::Enable = true;
+    DepthOfField::Enable = true;
 
     Lighting::CreateRandomLights(m_Model.GetBoundingBox().min, m_Model.GetBoundingBox().max);
 

@@ -44,6 +44,9 @@
     <Filter Include="Shaders\SSAO">
       <UniqueIdentifier>{a0bdb472-20b0-488a-bc24-4949e7a417bc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\DoF">
+      <UniqueIdentifier>{0a66bc1b-7faf-4798-9fcc-b41ed278505b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -506,6 +509,9 @@
     <None Include="Shaders\AoRenderCS.hlsli">
       <Filter>Shaders\SSAO</Filter>
     </None>
+    <None Include="Shaders\DoFCommon.hlsli">
+      <Filter>Shaders\DoF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\ScreenQuadVS.hlsl">
@@ -714,6 +720,9 @@
     </FxCompile>
     <FxCompile Include="Shaders\MotionBlur.hlsl">
       <Filter>Shaders\MotionBlur</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFPass2DebugCS.hlsl">
+      <Filter>Shaders\DoF</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

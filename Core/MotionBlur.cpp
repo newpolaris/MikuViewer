@@ -91,6 +91,8 @@ void MotionBlur::GenerateCameraVelocityBuffer( CommandContext& BaseContext, cons
 
 void MotionBlur::RenderObjectBlur( CommandContext& BaseContext, ColorBuffer& velocityBuffer )
 {
+    if (!Enable) return;
+
     ScopedTimer _prof(L"MotionBlur", BaseContext);
 
     uint32_t Width = g_SceneColorBuffer.GetWidth();

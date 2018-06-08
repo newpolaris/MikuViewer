@@ -16,6 +16,11 @@
 #include "DepthOfField.h"
 #include "CommandContext.h"
 #include "BufferManager.h"
+#include "GraphicsCore.h"
+
+#include "CompiledShaders/DoFPass2DebugCS.h"
+
+using namespace Graphics;
 
 namespace DepthOfField
 {
@@ -61,12 +66,51 @@ namespace DepthOfField
 
 void DepthOfField::Initialize( void )
 {
+#define CreatePSO( ObjName, ShaderByteCode ) \
+    ObjName.SetComputeShader( MY_SHADER_ARGS(ShaderByteCode) ); \
+    ObjName.Finalize();
+
+    CreatePSO(s_DoFPass2DebugCS, g_pDoFPass2DebugCS);
 }
 
 void DepthOfField::Shutdown( void )
 {
+    s_DoFPass2DebugCS.Destroy();
 }
 
 void DepthOfField::Render( CommandContext& BaseContext, float NearClipDist, float FarClipDist )
 {
+    ScopedTimer _prof(L"Depth of Field", BaseContext);
+
+    if (!g_bTypedUAVLoadSupport_R11G11B10_FLOAT)
+    {
+        // WARN_ONCE_IF(!g_bTypedUAVLoadSupport_R11G11B10_FLOAT, "Unable to perform final pass of DoF without support for R11G11B10F UAV loads");
+        // Enable = false;
+    }
+
+    ComputeContext& Context = BaseContext.GetComputeContext();
+    // Context.SetRootSignature(s_RootSignature);
+
+    ColorBuffer& LinearDepth = g_LinearDepth[ Graphics::GetFrameCount() % 2 ];
+
+    uint32_t BufferWidth = (uint32_t)LinearDepth.GetWidth();
+    uint32_t BufferHeight = (uint32_t)LinearDepth.GetHeight();
+
+    __declspec(align(16)) struct DoFConstantBuffer
+    {
+        float FlocalCenter, FocalRange;
+        float FocalMinZ, FlocalMaxZ;
+        float RcpBufferWidth, RcpBufferHeight;
+    };
+    DoFConstantBuffer cbuffer =
+    {
+        (float)FocalDepth, (float)FocalRange,
+        (float)FocalDepth - (float)FocalRange, (float)FocalDepth + (float)FocalRange,
+        1.0f / BufferWidth, 1.0f / BufferHeight,
+    };
+    Context.SetDynamicConstantBufferView(0, sizeof(cbuffer), &cbuffer);
+    Context.SetPipelineState(s_DoFPass2DebugCS);
+    Context.SetDynamicDescriptor(0, LinearDepth.GetSRV());
+    Context.SetDynamicDescriptor(0, g_SceneColorBuffer.GetUAV());
+    Context.Dispatch2D(BufferWidth, BufferHeight);
 }

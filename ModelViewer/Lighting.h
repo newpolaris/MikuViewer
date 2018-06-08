@@ -31,7 +31,7 @@ struct LightData
 
 namespace Lighting
 {
-    enum { MaxLights = 128 };
+    enum { MaxLights = 16 };
     enum { kMinLightGridDim = 8 };
 
     extern LightData m_LightData[MaxLights];
