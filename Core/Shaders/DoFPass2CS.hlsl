@@ -1,4 +1,4 @@
-#define PoissonKernel_ 4
+#define PoissonKernel_ 3
 
 #include "DoFCommon.hlsli"
 #include "PCFKernels.hlsli"
@@ -16,26 +16,28 @@ SamplerState LinearSampler : register(s0);
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-    float kMaxCocSize = 12.0;
-
     uint2 st = DTid.xy;
-    float Depth = LNFullDepth[st];
+    float depth = LNFullDepth[st];
 
-    float3 ColorSum = SrcColor[st];
-    float TotalContribution = 1.0;
-
-    float CenterDepth = LNFullDepth[st];
-    float SizeCoc = CocBuffer[st] * kMaxCocSize;
+    float3 colorSum = SrcColor[st];
+    float totalContribution = 1.0;
+    float SizeCoc = CocBuffer[st];
 
     for (int i = 0; i < kPoissonSample; i++)
     {
-        float2 tapCoord = (st + PoissonDisk[i] * SizeCoc) * RcpBufferDim;
+        float2 tapSt = st + PoissonDisk[i] * SizeCoc * 0.5;
+        float2 tapCoord = tapSt * RcpBufferDim;
         float3 tapColor = SrcColor.SampleLevel(LinearSampler, tapCoord, 0);
+        float tapDepth = LNFullDepth[tapSt];
+        float tapCocWeight = CocBuffer[tapSt] / MAX_COC_RADIUS;
 
-        ColorSum += tapColor;
-        TotalContribution += 1.0;
+        // Compute tap contribution based on depth and blurriness
+        float tapContribution = (tapDepth > depth) ? 1.0 : tapCocWeight;
+
+        colorSum += tapColor * tapContribution;
+        totalContribution += tapContribution;
     }
-    ColorSum /= TotalContribution;
+    colorSum /= totalContribution;
 
-    DstColor[st] = ColorSum;
+    DstColor[st] = colorSum;
 }
