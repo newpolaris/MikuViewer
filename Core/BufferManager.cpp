@@ -56,6 +56,7 @@ namespace Graphics
     ColorBuffer g_AOHighQuality3;
     ColorBuffer g_AOHighQuality4;
 
+    ColorBuffer g_DofCocBuffer;
     ColorBuffer g_DoFTileClass[2];
     ColorBuffer g_DoFPresortBuffer;
     ColorBuffer g_DoFPrefilter;
@@ -161,6 +162,7 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
                 esram.PopStack();	// End Shading
 
                 esram.PushStack();	// Begin depth of field
+                    g_DofCocBuffer.Create(L"DoF CoC Buffer", bufferWidth, bufferHeight, 1, DXGI_FORMAT_R16_FLOAT, esram);
                     g_DoFTileClass[0].Create(L"DoF Tile Classification Buffer 0", bufferWidth4, bufferHeight4, 1, DXGI_FORMAT_R11G11B10_FLOAT);
                     g_DoFTileClass[1].Create(L"DoF Tile Classification Buffer 1", bufferWidth4, bufferHeight4, 1, DXGI_FORMAT_R11G11B10_FLOAT);
 
@@ -285,6 +287,7 @@ void Graphics::DestroyRenderingBuffers()
     g_AOHighQuality3.Destroy();
     g_AOHighQuality4.Destroy();
 
+    g_DofCocBuffer.Destroy();
     g_DoFTileClass[0].Destroy();
     g_DoFTileClass[1].Destroy();
     g_DoFPresortBuffer.Destroy();

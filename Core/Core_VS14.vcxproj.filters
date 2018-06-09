@@ -724,5 +724,11 @@
     <FxCompile Include="Shaders\DoFPass2DebugCS.hlsl">
       <Filter>Shaders\DoF</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\DoFPass1CS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFPass2CS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

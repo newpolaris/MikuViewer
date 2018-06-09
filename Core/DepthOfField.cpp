@@ -18,6 +18,8 @@
 #include "BufferManager.h"
 #include "GraphicsCore.h"
 
+#include "CompiledShaders/DoFPass1CS.h"
+#include "CompiledShaders/DoFPass2CS.h"
 #include "CompiledShaders/DoFPass2DebugCS.h"
 
 using namespace Graphics;
@@ -61,7 +63,7 @@ namespace DepthOfField
 	ComputePSO s_DoFDebugGreenCS;			// Output green to entire tile for debugging
 	ComputePSO s_DoFDebugBlueCS;			// Output blue to entire tile for debugging
 
-	// IndirectArgsBuffer s_IndirectParameters;
+	IndirectArgsBuffer s_IndirectParameters;
 }
 
 void DepthOfField::Initialize( void )
@@ -70,11 +72,15 @@ void DepthOfField::Initialize( void )
     ObjName.SetComputeShader( MY_SHADER_ARGS(ShaderByteCode) ); \
     ObjName.Finalize();
 
+    CreatePSO(s_DoFPass1CS, g_pDoFPass1CS);
+    CreatePSO(s_DoFPass2CS, g_pDoFPass2CS);
     CreatePSO(s_DoFPass2DebugCS, g_pDoFPass2DebugCS);
 }
 
 void DepthOfField::Shutdown( void )
 {
+    s_DoFPass1CS.Destroy();
+    s_DoFPass2CS.Destroy();
     s_DoFPass2DebugCS.Destroy();
 }
 
@@ -109,8 +115,19 @@ void DepthOfField::Render( CommandContext& BaseContext, float NearClipDist, floa
         1.0f / BufferWidth, 1.0f / BufferHeight,
     };
     Context.SetDynamicConstantBufferView(0, sizeof(cbuffer), &cbuffer);
-    Context.SetPipelineState(s_DoFPass2DebugCS);
+    Context.SetPipelineState(s_DoFPass1CS);
     Context.SetDynamicDescriptor(0, LinearDepth.GetSRV());
-    Context.SetDynamicDescriptor(0, g_SceneColorBuffer.GetUAV());
+    Context.SetDynamicDescriptor(0, g_DofCocBuffer.GetUAV());
     Context.Dispatch2D(BufferWidth, BufferHeight);
+
+    Context.SetPipelineState(s_DoFPass2CS);
+    Context.SetDynamicDescriptor(0, UAV_NULL);
+    Context.SetDynamicDescriptor(0, LinearDepth.GetSRV());
+    Context.SetDynamicDescriptor(1, g_DofCocBuffer.GetSRV());
+    Context.SetDynamicDescriptor(2, g_SceneColorBuffer.GetSRV());
+    Context.SetDynamicDescriptor(0, g_PostEffectsBufferTyped.GetUAV());
+    Context.SetDynamicSampler(0, SamplerLinearClamp);
+    Context.Dispatch2D(BufferWidth, BufferHeight);
+
+    Context.CopyBuffer(g_SceneColorBuffer, g_PostEffectsBufferTyped);
 }

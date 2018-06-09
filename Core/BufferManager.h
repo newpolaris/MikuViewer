@@ -8,7 +8,7 @@
 //
 // Developed by Minigraph
 //
-// Author:  James Stanard 
+// Author:  James Stanard
 //
 
 #pragma once
@@ -57,6 +57,7 @@ namespace Graphics
     extern ColorBuffer g_AOHighQuality3;
     extern ColorBuffer g_AOHighQuality4;
 
+    extern ColorBuffer g_DofCocBuffer;
     extern ColorBuffer g_DoFTileClass[2];
     extern ColorBuffer g_DoFPresortBuffer;
     extern ColorBuffer g_DoFPrefilter;
@@ -71,7 +72,7 @@ namespace Graphics
     extern ColorBuffer g_TemporalColor[2];
 
     extern ColorBuffer g_aBloomUAV1[2];		// 640x384 (1/3)
-    extern ColorBuffer g_aBloomUAV2[2];		// 320x192 (1/6)  
+    extern ColorBuffer g_aBloomUAV2[2];		// 320x192 (1/6)
     extern ColorBuffer g_aBloomUAV3[2];		// 160x96  (1/12)
     extern ColorBuffer g_aBloomUAV4[2];		// 80x48   (1/24)
     extern ColorBuffer g_aBloomUAV5[2];		// 40x24   (1/48)

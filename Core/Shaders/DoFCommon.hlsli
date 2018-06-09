@@ -9,7 +9,5 @@ cbuffer CB0 : register(b0)
 
 float ComputeCoC(float Depth)
 {
-    float coc = (Depth - FocusCenter) / FocalRange;
-    return clamp(coc, -1, 1);
-    // saturate((Depth - FocusCenter) / FocalRange);
+    return saturate(abs(Depth - FocusCenter) / FocalRange);
 }
