@@ -1,25 +1,17 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-// Developed by Minigraph
-//
-// Author:  James Stanard
-//
-
 #include "pch.h"
 #include "PipelineState.h"
 #include "DepthOfField.h"
 #include "CommandContext.h"
 #include "BufferManager.h"
 #include "GraphicsCore.h"
+#include "FullScreenTriangle.h"
 
-#include "CompiledShaders/DoFPass1CS.h"
-#include "CompiledShaders/DoFPass2CS.h"
+#include "CompiledShaders/FullScreenTriangleVS.h"
+#include "CompiledShaders/DoFCombinePS.h"
+#include "CompiledShaders/DoFPrefilterCS.h"
+#include "CompiledShaders/DoFDownsamplingPS.h"
+#include "CompiledShaders/DoFBlurHorzPS.h"
+#include "CompiledShaders/DoFBlurVertPS.h"
 #include "CompiledShaders/DoFPass2DebugCS.h"
 
 using namespace Graphics;
@@ -39,6 +31,11 @@ namespace DepthOfField
 	BoolVar DebugTiles("Graphics/Depth of Field/Debug Tiles", false);
 	BoolVar ForceSlow("Graphics/Depth of Field/Force Slow Path", false);
 	BoolVar ForceFast("Graphics/Depth of Field/Force Fast Path", false);
+
+    GraphicsPSO s_DoFDownsamplingPSO;
+    GraphicsPSO s_DoFBlurHorzPSO;
+    GraphicsPSO s_DoFBlurVertPSO;
+    GraphicsPSO s_DoFCombinePSO;
 
 	ComputePSO s_DoFPass1CS;				// Responsible for classifying tiles (1st pass)
 	ComputePSO s_DoFTilePassCS;				// Disperses tile info to its neighbors (3x3)
@@ -63,24 +60,68 @@ namespace DepthOfField
 	ComputePSO s_DoFDebugGreenCS;			// Output green to entire tile for debugging
 	ComputePSO s_DoFDebugBlueCS;			// Output blue to entire tile for debugging
 
+    D3D11_VIEWPORT s_MainViewport, s_Viewport;
+    D3D11_RECT s_MainScissor, s_Scissor;
+
 	IndirectArgsBuffer s_IndirectParameters;
 }
 
 void DepthOfField::Initialize( void )
 {
+    const auto input = FullScreenTriangle::InputLayout;
+
 #define CreatePSO( ObjName, ShaderByteCode ) \
-    ObjName.SetComputeShader( MY_SHADER_ARGS(ShaderByteCode) ); \
+	ObjName.SetPrimitiveTopologyType( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST ); \
+	ObjName.SetInputLayout( uint32_t(input.size()), input.data() ); \
+	ObjName.SetVertexShader( MY_SHADER_ARGS( g_pFullScreenTriangleVS ) ); \
+	ObjName.SetPixelShader( MY_SHADER_ARGS( ShaderByteCode ) ); \
     ObjName.Finalize();
 
-    CreatePSO(s_DoFPass1CS, g_pDoFPass1CS);
-    CreatePSO(s_DoFPass2CS, g_pDoFPass2CS);
+    CreatePSO(s_DoFBlurHorzPSO, g_pDoFBlurHorzPS);
+    CreatePSO(s_DoFBlurVertPSO, g_pDoFBlurVertPS);
+    CreatePSO(s_DoFCombinePSO, g_pDoFCombinePS);
+    CreatePSO(s_DoFDownsamplingPSO, g_pDoFDownsamplingPS);
+
+#undef CreatePSO
+
+#define CreatePSO( ObjName, ShaderByteCode ) \
+    ObjName.SetComputeShader( MY_SHADER_ARGS( ShaderByteCode ) ); \
+    ObjName.Finalize();
+
+    CreatePSO(s_DoFPreFilterCS, g_pDoFPrefilterCS);
     CreatePSO(s_DoFPass2DebugCS, g_pDoFPass2DebugCS);
+
+    s_Viewport.TopLeftX = 0.f;
+    s_Viewport.TopLeftY = 0.f;
+    s_Viewport.Width = (float)g_DoFBlurColor[0].GetWidth();
+    s_Viewport.Height = (float)g_DoFBlurColor[0].GetHeight();
+    s_Viewport.MinDepth = 0.0f;
+    s_Viewport.MaxDepth = 1.0f;
+
+    s_Scissor.left = 0;
+    s_Scissor.top = 0;
+    s_Scissor.right = (LONG)g_DoFBlurColor[0].GetWidth();
+    s_Scissor.bottom = (LONG)g_DoFBlurColor[0].GetHeight();
+
+    s_MainViewport.TopLeftX = 0.f;
+    s_MainViewport.TopLeftY = 0.f;
+    s_MainViewport.Width = (float)g_SceneColorBuffer.GetWidth();
+    s_MainViewport.Height = (float)g_SceneColorBuffer.GetHeight();
+    s_MainViewport.MinDepth = 0.0f;
+    s_MainViewport.MaxDepth = 1.0f;
+
+    s_MainScissor.left = 0;
+    s_MainScissor.top = 0;
+    s_MainScissor.right = (LONG)g_SceneColorBuffer.GetWidth();
+    s_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
 }
 
 void DepthOfField::Shutdown( void )
 {
-    s_DoFPass1CS.Destroy();
-    s_DoFPass2CS.Destroy();
+    s_DoFBlurHorzPSO.Destroy();
+    s_DoFBlurVertPSO.Destroy();
+    s_DoFCombinePSO.Destroy();
+    s_DoFPreFilterCS.Destroy();
     s_DoFPass2DebugCS.Destroy();
 }
 
@@ -115,19 +156,47 @@ void DepthOfField::Render( CommandContext& BaseContext, float NearClipDist, floa
         1.0f / BufferWidth, 1.0f / BufferHeight,
     };
     Context.SetDynamicConstantBufferView(0, sizeof(cbuffer), &cbuffer);
-    Context.SetPipelineState(s_DoFPass1CS);
+    Context.SetPipelineState(s_DoFPreFilterCS);
     Context.SetDynamicDescriptor(0, LinearDepth.GetSRV());
     Context.SetDynamicDescriptor(0, g_DofCocBuffer.GetUAV());
     Context.Dispatch2D(BufferWidth, BufferHeight);
 
-    Context.SetPipelineState(s_DoFPass2CS);
     Context.SetDynamicDescriptor(0, UAV_NULL);
-    Context.SetDynamicDescriptor(0, LinearDepth.GetSRV());
-    Context.SetDynamicDescriptor(1, g_DofCocBuffer.GetSRV());
-    Context.SetDynamicDescriptor(2, g_SceneColorBuffer.GetSRV());
-    Context.SetDynamicDescriptor(0, g_PostEffectsBufferTyped.GetUAV());
-    Context.SetDynamicSampler(0, SamplerLinearClamp);
-    Context.Dispatch2D(BufferWidth, BufferHeight);
+
+    // Downsampling to 1/4
+    GraphicsContext& gfxContext = Context.GetGraphicsContext();
+    gfxContext.SetViewportAndScissor(s_Viewport, s_Scissor);
+    gfxContext.SetPipelineState(s_DoFDownsamplingPSO);
+    gfxContext.SetConstants(0, 1.0f / s_Viewport.Width, 1.f / s_Viewport.Height, { kBindPixel });
+    gfxContext.SetDynamicDescriptor(0, g_DofCocBuffer.GetSRV(), { kBindPixel } );
+    gfxContext.SetDynamicDescriptor(1, g_SceneColorBuffer.GetSRV(), { kBindPixel } );
+    gfxContext.SetDynamicSampler(0, SamplerLinearClamp, { kBindPixel } );
+    gfxContext.SetRenderTarget(g_DoFBlurColor[0].GetRTV());
+    FullScreenTriangle::Draw(gfxContext);
+
+    // Gaussian blur X
+    gfxContext.SetPipelineState(s_DoFBlurHorzPSO);
+    gfxContext.SetRenderTarget(nullptr);
+    gfxContext.SetDynamicDescriptor(0, g_DoFBlurColor[0].GetSRV(), { kBindPixel } );
+    gfxContext.SetRenderTarget(g_DoFBlurColor[1].GetRTV());
+    FullScreenTriangle::Draw(gfxContext);
+
+    // Gaussian blur Y
+    gfxContext.SetPipelineState(s_DoFBlurVertPSO);
+    gfxContext.SetRenderTarget(nullptr);
+    gfxContext.SetDynamicDescriptor(0, g_DoFBlurColor[1].GetSRV(), { kBindPixel } );
+    gfxContext.SetRenderTarget(g_DoFBlurColor[0].GetRTV());
+    FullScreenTriangle::Draw(gfxContext);
+
+    // Combine
+    gfxContext.SetPipelineState(s_DoFCombinePSO);
+    gfxContext.SetViewportAndScissor(s_MainViewport, s_MainScissor);
+    gfxContext.SetRenderTarget(g_PostEffectsBufferTyped.GetRTV());
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(cbuffer), &cbuffer, { kBindPixel } );
+    gfxContext.SetDynamicDescriptor(0, g_SceneColorBuffer.GetSRV(), { kBindPixel } );
+    gfxContext.SetDynamicDescriptor(1, g_DofCocBuffer.GetSRV(), { kBindPixel } );
+    gfxContext.SetDynamicDescriptor(2, g_DoFBlurColor[0].GetSRV(), { kBindPixel } );
+    FullScreenTriangle::Draw(gfxContext);
 
     Context.CopyBuffer(g_SceneColorBuffer, g_PostEffectsBufferTyped);
 }

@@ -24,5 +24,5 @@ float Min4( float4 vec ) { return Min4( vec.x, vec.y, vec.z, vec.w ); }
 
 float ComputeCoC(float Depth)
 {
-     return max(1.0 / sqrt(MATH_CONST_PI), MAX_COC_RADIUS * saturate( abs(Depth - FocusCenter)  / FocalRange ));
+     return saturate( abs(Depth - FocusCenter)  / FocalRange );
 }

@@ -724,10 +724,25 @@
     <FxCompile Include="Shaders\DoFPass2DebugCS.hlsl">
       <Filter>Shaders\DoF</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\DoFPass1CS.hlsl">
+    <FxCompile Include="Shaders\DoFPass2CS.hlsl">
       <Filter>Shaders\DoF</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\DoFPass2CS.hlsl">
+    <FxCompile Include="Shaders\FullScreenTriangleVS.hlsl">
+      <Filter>Shaders\Misc</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFBlurVertPS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFBlurHorzPS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFPrefilterCS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFDownsamplingPS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFCombinePS.hlsl">
       <Filter>Shaders\DoF</Filter>
     </FxCompile>
   </ItemGroup>

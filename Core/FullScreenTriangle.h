@@ -4,7 +4,7 @@
 class GraphicsContext;
 
 namespace FullScreenTriangle {
-    extern std::vector<InputDesc> InputLayout;
+    extern const std::vector<InputDesc> InputLayout;
 
     void Create( void );
     void Clear( void );
