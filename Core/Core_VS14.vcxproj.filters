@@ -512,6 +512,9 @@
     <None Include="Shaders\DoFCommon.hlsli">
       <Filter>Shaders\DoF</Filter>
     </None>
+    <None Include="Shaders\DoFBlur.hlsli">
+      <Filter>Shaders\DoF</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\ScreenQuadVS.hlsl">
@@ -743,6 +746,24 @@
       <Filter>Shaders\DoF</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\DoFCombinePS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFDownPS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFMergePS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFBlur2PS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFBlur1PS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFSmallBlurPS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\DoFNearCocPS.hlsl">
       <Filter>Shaders\DoF</Filter>
     </FxCompile>
   </ItemGroup>

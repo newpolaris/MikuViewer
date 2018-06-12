@@ -1,3 +1,5 @@
+// Shader X2 : Real-Time Depth Of Field Simulation Method 2
+
 cbuffer cb0 : register(b0)
 {
     float2 RcpBufferDim;

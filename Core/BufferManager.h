@@ -57,12 +57,13 @@ namespace Graphics
     extern ColorBuffer g_AOHighQuality3;
     extern ColorBuffer g_AOHighQuality4;
 
-    extern ColorBuffer g_DofCocBuffer;
     extern ColorBuffer g_DoFTileClass[2];
     extern ColorBuffer g_DoFPresortBuffer;
     extern ColorBuffer g_DoFPrefilter;
+    extern ColorBuffer g_DoFDownColor;
     extern ColorBuffer g_DoFBlurColor[2];
     extern ColorBuffer g_DoFBlurAlpha[2];
+    extern ColorBuffer g_DoFNearCocBuffer[2];
     extern StructuredBuffer g_DoFWorkQueue;
     extern StructuredBuffer g_DoFFastQueue;
     extern StructuredBuffer g_DoFFixupQueue;

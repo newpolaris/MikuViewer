@@ -231,7 +231,7 @@ void ModelViewer::Startup( void )
     TemporalEffects::EnableTAA = false;
     FXAA::Enable = false;
     PostEffects::EnableHDR = true;
-    PostEffects::EnableAdaptation = true;
+    PostEffects::EnableAdaptation = false;
     SSAO::Enable = true;
     DepthOfField::Enable = true;
 

@@ -1,3 +1,5 @@
+// Shader X2 : Real-Time Depth Of Field Simulation Method 2
+
 Texture2D<float3> texColor : register(t0);
 Texture2D<float> texCoc : register(t1);
 Texture2D<float4> texBlurred : register(t2);
