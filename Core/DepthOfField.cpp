@@ -8,6 +8,7 @@
 
 #include "CompiledShaders/FullScreenTriangleVS.h"
 #include "CompiledShaders/DoFMergePS.h"
+#include "CompiledShaders/DoFMergeDebugPS.h"
 #include "CompiledShaders/DoFPrefilterCS.h"
 #include "CompiledShaders/DoFDownPS.h"
 #include "CompiledShaders/DoFBlur1PS.h"
@@ -26,9 +27,10 @@ namespace DepthOfField
 	BoolVar MedianAlpha("Graphics/Depth of Field/Median Alpha", false);
 	NumVar FocalDepth("Graphics/Depth of Field/Focal Center", 0.1f, 0.0f, 1.0f, 0.01f);
 	NumVar FocalRange("Graphics/Depth of Field/Focal Radius", 0.1f, 0.0f, 1.0f, 0.01f);
-	NumVar ForegroundRange("Graphics/Depth of Field/FG Range", 2000.0f, 10.0f, 10000.0f, 100.0f);
+	NumVar ForegroundRange("Graphics/Depth of Field/FG Range", 8000.0f, 10.0f, 10000.0f, 100.0f);
+    NumVar FarCocMult("Graphics/Depth of Field/Far Coc Multiply factor", 0.95f, 0.0f, 1.0f, 0.1f);
 	NumVar AntiSparkleWeight("Graphics/Depth of Field/AntiSparkle", 1.0f, 0.0f, 10.0f, 1.0f);
-	const char* DebugLabels[] = { "Off", "Foreground", "Background", "FG Alpha", "CoC" };
+	const char* DebugLabels[] = { "Off", "CoC" };
 	EnumVar DebugMode("Graphics/Depth of Field/Debug Mode", 0, _countof(DebugLabels), DebugLabels);
 	BoolVar DebugTiles("Graphics/Depth of Field/Debug Tiles", false);
 	BoolVar ForceSlow("Graphics/Depth of Field/Force Slow Path", false);
@@ -39,6 +41,7 @@ namespace DepthOfField
     GraphicsPSO s_DoFBlur2PSO;
     GraphicsPSO s_DoFSmallBlurPSO;
     GraphicsPSO s_DoFMergeSO;
+    GraphicsPSO s_DoFMergeDebugSO;
     GraphicsPSO s_DoFNearCocPSO;
 
 	ComputePSO s_DoFPass1CS;				// Responsible for classifying tiles (1st pass)
@@ -88,6 +91,7 @@ void DepthOfField::Initialize( void )
     CreatePSO(s_DoFBlur1PSO, g_pDoFBlur1PS);
     CreatePSO(s_DoFBlur2PSO, g_pDoFBlur2PS);
     CreatePSO(s_DoFMergeSO, g_pDoFMergePS);
+    CreatePSO(s_DoFMergeDebugSO, g_pDoFMergeDebugPS);
     CreatePSO(s_DoFDownPSO, g_pDoFDownPS);
     CreatePSO(s_DoFNearCocPSO, g_pDoFNearCocPS);
     CreatePSO(s_DoFSmallBlurPSO, g_pDoFSmallBlurPS);
@@ -154,6 +158,8 @@ void DepthOfField::Render( CommandContext& BaseContext, float /*NearClipDist*/, 
         float FocalMinZ, FlocalMaxZ;
         float RcpBufferWidth, RcpBufferHeight;
         float ForegroundRange;
+        float FarCocMult;
+        uint32_t DebugState;
     };
     DoFConstantBuffer cbuffer =
     {
@@ -161,6 +167,8 @@ void DepthOfField::Render( CommandContext& BaseContext, float /*NearClipDist*/, 
         (float)FocalDepth - (float)FocalRange, (float)FocalDepth + (float)FocalRange,
         1.0f / BufferWidth, 1.0f / BufferHeight,
         ForegroundRange / FarClipDist,
+        FarCocMult,
+        (uint32_t)DebugMode
     };
 
     GraphicsContext& gfxContext = BaseContext.GetGraphicsContext();
@@ -234,7 +242,7 @@ void DepthOfField::DofMerge(GraphicsContext& gfxContext, ColorBuffer& destinatio
 {
     ColorBuffer& LinearDepth = g_LinearDepth[ Graphics::GetFrameCount() % 2 ];
 
-    gfxContext.SetPipelineState(s_DoFMergeSO);
+    gfxContext.SetPipelineState(DebugMode > 0 ? s_DoFMergeDebugSO : s_DoFMergeSO);
     gfxContext.SetViewportAndScissor(s_MainViewport, s_MainScissor);
     gfxContext.SetRenderTarget(destination.GetRTV());
     gfxContext.SetDynamicDescriptor(0, g_SceneColorBuffer.GetSRV(), { kBindPixel } );

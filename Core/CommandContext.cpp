@@ -284,8 +284,8 @@ void CommandContext::CopyBuffer( GpuResource& Dest, GpuResource& Src )
 // DestOffset is in byte
 void CommandContext::CopyBufferRegion(GpuResource& Dest, size_t DestOffset, GpuResource& Src, size_t SrcOffset, size_t NumBytes)
 {
-    ASSERT(Dest.GetResource());
-    ASSERT(Src.GetResource());
+    ASSERT(Dest.GetResource() != nullptr);
+    ASSERT(Src.GetResource() != nullptr);
 
     D3D11_BOX SrcBox;
     SrcBox.left = (UINT)SrcOffset;

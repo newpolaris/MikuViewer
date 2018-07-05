@@ -61,7 +61,6 @@ float4 main(
     // Sum weights using DOT
     fWeightSum = dot(vWeights4, 1);
 
-#if 1
     // Compute weights for 3 remaining samples
     vWeights3.x = saturate(s4.a - vThresh0.x);
     vWeights3.y = saturate(s5.a - vThresh0.y);
@@ -109,7 +108,6 @@ float4 main(
 
     // Sum weights using DOT
     fWeightSum += dot(vWeights3, 1);
-#endif
 
     // Divide weighted sum of samples by sum of all weights
     vColorSum /= fWeightSum;

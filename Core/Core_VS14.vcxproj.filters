@@ -766,5 +766,8 @@
     <FxCompile Include="Shaders\DoFNearCocPS.hlsl">
       <Filter>Shaders\DoF</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\DoFMergeDebugPS.hlsl">
+      <Filter>Shaders\DoF</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

@@ -6,6 +6,8 @@ cbuffer CB0 : register(b0)
     float FocalMaxDist; // Farther than this is also max blurriness
     float2 RcpBufferDim; // Full screen size
     float ForegroundRange;
+    float FarCocMult;
+    uint DebugMode;
 }
 
 #define DEPTH_FOREGROUND_RANGE 0.01
@@ -25,15 +27,15 @@ float Min4( float4 vec ) { return Min4( vec.x, vec.y, vec.z, vec.w ); }
 
 float ComputeCoC(float Depth)
 {
-     return saturate( abs(Depth - FocusCenter)  / FocalRange );
+     return saturate(abs(Depth - FocusCenter) / FocalRange);
 }
 
 float ComputeNearCoC(float Depth)
 {
-     return saturate( -(Depth - FocusCenter)  / FocalRange );
+     return saturate(-(Depth - FocusCenter) / FocalRange);
 }
 
 float ComputeFarCoC(float Depth)
 {
-     return saturate( (Depth - FocusCenter)  / FocalRange );
+    return saturate((Depth - FocusCenter) / FocalRange);
 }

@@ -38,7 +38,7 @@ float4 GetCocDepthOffset(float2 texCoord)
     for (int i = 0; i < 4; i++)
     {
         float depth = LNFullDepth.Sample(samplerLinear, texCoord + rowOffset[i]);
-        curcoc[i] = ComputeCoC(depth);
+        curcoc[i] = ComputeNearCoC(depth);
     }
     return curcoc;
 }

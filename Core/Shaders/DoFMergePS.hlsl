@@ -71,7 +71,7 @@ float3 main(
         // float farCoc = saturate(dofEqFar.x * depth + dofEqFar.y);
         // coc = max(nearCoc, farCoc * dofEqFar.z);
         float farCoc = ComputeFarCoC(depth);
-        coc = max(nearCoc, farCoc * 0.95);
+        coc = max(nearCoc, farCoc * FarCocMult);
     }
 
     // Interpolate between original full-resolution and
@@ -79,6 +79,15 @@ float3 main(
     float3 dest = texColor.Sample(samplerLinear, Tex);
     float4 source = InterpolateDof(small, median.rgb, large, coc);
 
-    // Blend premultiplied alpha
-    return source.rgb + dest * (1 - source.a);
+#ifdef SUPPORT_DEBUGGING
+    if (DebugMode)
+    {
+        return coc.xxx;
+    }
+    else
+#endif
+    {
+        // Blend premultiplied alpha
+        return source.rgb + dest * (1 - source.a);
+    }
 }

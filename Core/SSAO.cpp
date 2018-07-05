@@ -302,6 +302,9 @@ void SSAO::Render( GraphicsContext& GfxContext, const float* ProjMat, float Near
 
     ColorBuffer& LinearDepth = g_LinearDepth[FrameIndex];
 
+    // TODO: Non reverse Z handling
+    // reverse z => zMagic * z' = zMagic * Q1 * (1 + F/Z) => Z/Far
+    // where non reverse z case, additional constant is needed
     const float zMagic = (FarClipDist - NearClipDist) / NearClipDist;
 
     if (!Enable)
