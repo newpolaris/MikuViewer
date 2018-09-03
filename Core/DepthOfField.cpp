@@ -21,13 +21,54 @@ using namespace Graphics;
 
 namespace DepthOfField
 {
+    extern EnumVar ApertureSize;
+    extern NumVar FocalLength;
+    extern NumVar FocusDistance;
+    extern NumVar FilmSize;
+    extern float ApertureFNumber();
+    extern float ApertureWidth();
+
+	enum {
+        kFStop1_8, kFStop2_0, kFStop2_2, kFStop2_5, kFStop2_8, kFStop3_2, kFStop3_5, kFStop4_0,
+        kFStop4_5, kFStop5_0, kFStop5_6, kFStop6_3, kFStop7_1, kFStop8_0, kFStop9_0, kFStop10_0,
+        kFStop11_0, kFStop13_0, kFStop14_0, kFStop16_0, kFStop18_0, kFStop20_0, kFStop22_0,
+        kFStopCount
+    };
+	const char* FStopLabels[] = {
+        "f/1.8", "f/2.0", "f/2.2", "f/2.5", "f/2.8", "f/3.2", "f/3.5", "f/4.0",
+        "f/4.5", "f/5.0", "f/5.6", "f/6.3", "f/7.1", "f/8.0", "f/9.0", "f/10.0",
+        "f/11.0", "f/13.0", "f/14.0", "f/16.0", "f/18.0", "f/20.0", "f/22.0"
+    };
+	EnumVar ApertureSize("Graphics/Camera/F-Stops", kFStop16_0, kFStopCount, FStopLabels);
+    NumVar FocalLength("Graphics/Camera/Focal Length(mm)", 35.0f, 0.0f, 300.0f, 1.0f);
+    NumVar FocusDistance("Graphics/Camera/Focus Distance(m)", 10.0f, 1.0f, 1000.0f, 1.0f);
+    NumVar FilmSize("Graphics/Camera/Film Size(mm)", 35.0f, 1.0f, 100.0f, 0.1f);
+
+    float ApertureFNumber()
+    {
+        static const float FNumbers[] =
+        {
+            1.8f, 2.0f, 2.2f, 2.5f, 2.8f, 3.2f, 3.5f, 4.0f, 4.5f, 5.0f, 5.6f, 6.3f, 7.1f, 8.0f,
+            9.0f, 10.0f, 11.0f, 13.0f, 14.0f, 16.0f, 18.0f, 20.0f, 22.0f
+        };
+        static_assert(_countof(FNumbers) == kFStopCount, "FStop Label mismatch");
+
+        return FNumbers[ApertureSize];
+    }
+
+    // ApertureWidth (mm)
+    float ApertureWidth()
+    {
+        return (FocalLength / ApertureFNumber()) * 0.5f;
+    }
+
 	BoolVar Enable("Graphics/Depth of Field/Enable", false);
 	BoolVar EnablePreFilter("Graphics/Depth of Field/PreFilter", true);
 	BoolVar MedianFilter("Graphics/Depth of Field/Median Filter", true);
 	BoolVar MedianAlpha("Graphics/Depth of Field/Median Alpha", false);
 	NumVar FocalDepth("Graphics/Depth of Field/Focal Center", 0.1f, 0.0f, 1.0f, 0.01f);
 	NumVar FocalRange("Graphics/Depth of Field/Focal Radius", 0.1f, 0.0f, 1.0f, 0.01f);
-	NumVar ForegroundRange("Graphics/Depth of Field/FG Range", 8000.0f, 10.0f, 10000.0f, 100.0f);
+	NumVar ForegroundRange("Graphics/Depth of Field/FG Range(m)", 80.0f, 1.0f, 100.0f, 1.0f);
     NumVar FarCocMult("Graphics/Depth of Field/Far Coc Multiply factor", 0.95f, 0.0f, 1.0f, 0.1f);
 	NumVar AntiSparkleWeight("Graphics/Depth of Field/AntiSparkle", 1.0f, 0.0f, 10.0f, 1.0f);
 	const char* DebugLabels[] = { "Off", "CoC" };
@@ -154,20 +195,35 @@ void DepthOfField::Render( CommandContext& BaseContext, float /*NearClipDist*/, 
 
     __declspec(align(16)) struct DoFConstantBuffer
     {
-        float FlocalCenter, FocalRange;
+        float FocalCenter, FocalRange;
         float FocalMinZ, FlocalMaxZ;
         float RcpBufferWidth, RcpBufferHeight;
         float ForegroundRange;
         float FarCocMult;
+        float FocusDistance;
+        float FocalLength;
+        float ApertureWidth;
+        float FilmSize;
+        float FarClipDist;
+        uint32_t BufferWidth;
         uint32_t DebugState;
     };
+
+    // For proper scale matric treat FarClipDist as (cm)
+
     DoFConstantBuffer cbuffer =
     {
         (float)FocalDepth, (float)FocalRange,
         (float)FocalDepth - (float)FocalRange, (float)FocalDepth + (float)FocalRange,
         1.0f / BufferWidth, 1.0f / BufferHeight,
-        ForegroundRange / FarClipDist,
+        ForegroundRange / (FarClipDist/100),
         FarCocMult,
+        FocusDistance,
+        FocalLength/1000,
+        ApertureWidth()/1000,
+        FilmSize/1000,
+        FarClipDist/100,
+        BufferWidth,
         (uint32_t)DebugMode
     };
 

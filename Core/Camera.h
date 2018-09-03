@@ -22,13 +22,6 @@ namespace Math
     extern const bool g_ReverseZ;
     extern const float g_ClearDepth;
 
-    extern EnumVar ApertureSize;
-    extern NumVar ApertureWidth;
-    extern NumVar FocalLength;
-    extern NumVar FocusDistance;
-    extern NumVar FilmSize;
-    float ApertureFNumber();
-
 	class BaseCamera
 	{
 	public:
