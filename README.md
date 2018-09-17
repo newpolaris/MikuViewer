@@ -6,6 +6,7 @@
 ## Model Viewer
 - Deferred rendering
 - Crytek Sponza Scene
+- DoF implementaion (GPU Gem3 DoF) 
 - Little slower than original one (Forward+)
 [![link text](./Screenshots/Sponza.jpg)](./Screenshots/Sponza.png)
 
